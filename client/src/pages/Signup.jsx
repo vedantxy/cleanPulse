@@ -162,6 +162,7 @@ const Signup = () => {
                                     >
                                         <option value="citizen">Citizen</option>
                                         <option value="collector">Collector</option>
+                                        <option value="admin">Admin</option>
                                     </select>
                                     <div className="absolute right-4 top-4 pointer-events-none text-slate-400">
                                         <ArrowRight size={16} className="rotate-90" />
