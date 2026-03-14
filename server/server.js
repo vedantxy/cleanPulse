@@ -20,6 +20,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/reports', require('./routes/reports'));
 
 app.get('/', (req, res) => {
     res.send('SmartWaste API is running...');
