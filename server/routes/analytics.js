@@ -94,7 +94,7 @@ router.get('/trends', auth, async (req, res) => {
 
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const formattedTrends = trends.map(t => ({
-            month: months[t._id - 1],
+            month: months[t._id - 1] || "Unknown",
             reports: t.count
         }));
 

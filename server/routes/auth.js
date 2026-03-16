@@ -46,7 +46,10 @@ router.post('/signup', async (req, res) => {
             { expiresIn: '24h' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+                const userObj = user.toObject();
+                delete userObj.password;
+                userObj.id = userObj._id;
+                res.json({ token, user: userObj });
             }
         );
     } catch (err) {
@@ -95,7 +98,10 @@ router.post('/login', async (req, res) => {
             { expiresIn: '24h' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+                const userObj = user.toObject();
+                delete userObj.password;
+                userObj.id = userObj._id;
+                res.json({ token, user: userObj });
             }
         );
     } catch (err) {
@@ -140,7 +146,10 @@ router.put('/profile', auth, async (req, res) => {
             { new: true }
         ).select('-password');
 
-        res.json(user);
+        const userObj = user.toObject();
+        delete userObj.password;
+        userObj.id = userObj._id;
+        res.json(userObj);
     } catch (err) {
         console.error('Update Profile Error:', err.message);
         res.status(500).send('Server Error');

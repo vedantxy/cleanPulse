@@ -189,8 +189,8 @@ const AdminUsers = () => {
                                         }}
                                         className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                     >
-                                        {['A', 'B', 'C', 'D', 'E'].map(z => (
-                                            <option key={z} value={z}>Zone {z}</option>
+                                        {['North', 'South', 'East', 'West', 'Central'].map(z => (
+                                            <option key={z} value={z}>{z} Zone</option>
                                         ))}
                                     </select>
                                 ) : (

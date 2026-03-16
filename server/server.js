@@ -26,6 +26,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/badges', require('./routes/badges'));
+app.use('/api/rewards', require('./routes/rewards'));
 
 app.get('/', (req, res) => {
     res.send('SmartWaste API is running...');
