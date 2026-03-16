@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { User, Mail, Phone, MapPin, Award, BarChart2, CheckCircle, Clock, ShieldCheck, Trophy, Star, X, Save, Activity } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Award, BarChart2, CheckCircle, Clock, ShieldCheck, Trophy, Star, X, Save, Activity, Calendar, Lock, Key } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const CitizenProfile = () => {
     const { user, updateUser, token } = useAuth();
+    const { theme } = useTheme();
     const [stats, setStats] = useState({ totalRec: 0, resolvedRec: 0, pendingRec: 0 });
     const [badges, setBadges] = useState([]);
     const [allAvailableBadges, setAllAvailableBadges] = useState([]);
@@ -22,6 +24,15 @@ const CitizenProfile = () => {
         zone: user?.zone || ''
     });
     const [updateLoading, setUpdateLoading] = useState(false);
+
+    // Change Password State
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [passwordLoading, setPasswordLoading] = useState(false);
 
     useEffect(() => {
         const fetchProfileData = async () => {
@@ -111,6 +122,32 @@ const CitizenProfile = () => {
         }
     };
 
+    const handlePasswordChange = (e) => {
+        setPasswordForm({ ...passwordForm, [e.target.name]: e.target.value });
+    };
+
+    const handleUpdatePassword = async (e) => {
+        e.preventDefault();
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            alert('Passwords do not match!');
+            return;
+        }
+        setPasswordLoading(true);
+        try {
+            await axios.put('http://localhost:5000/api/auth/change-password', 
+                { currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword },
+                { headers: { 'x-auth-token': token } }
+            );
+            alert('Password updated successfully');
+            setIsChangingPassword(false);
+            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (err) {
+            alert(err.response?.data?.message || 'Failed to update password');
+        } finally {
+            setPasswordLoading(false);
+        }
+    };
+
     const handleOpenEdit = () => {
         setEditForm({
             name: user?.name || '',
@@ -122,37 +159,42 @@ const CitizenProfile = () => {
 
     const earnedBadgeIds = badges.map(b => b.badgeId?._id || b.badgeId);
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+    }) : 'Jan 2025';
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]"><div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
     return (
-        <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-fade-in text-slate-900">
+        <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-fade-in text-[var(--text-main)]">
             {/* Profile Header */}
             <div className="glass-card p-10 rounded-[3rem] mb-12 relative overflow-hidden flex flex-col md:flex-row items-center gap-10 shadow-2xl border-white/40">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-100/30 dark:bg-emerald-900/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                 
                 <div className="relative">
                     <div className="w-32 h-32 bg-gradient-to-tr from-emerald-500 to-teal-500 rounded-[2.5rem] flex items-center justify-center text-4xl text-white shadow-xl">
                         {user?.name?.charAt(0) || 'U'}
                     </div>
-                    <div className="absolute -bottom-2 -right-2 bg-white p-2 rounded-xl shadow-lg border border-slate-100">
+                    <div className="absolute -bottom-2 -right-2 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700">
                         <Award size={20} className="text-emerald-500" />
                     </div>
                 </div>
 
                 <div className="flex-grow text-center md:text-left space-y-4">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">{user?.name}</h1>
-                        <div className="flex items-center justify-center md:justify-start gap-3 mt-2">
-                            <p className="text-emerald-600 font-bold uppercase tracking-widest text-xs">Certified Citizen Reporter</p>
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                            <div className="flex items-center gap-1.5 bg-amber-50 px-3 py-1 rounded-full border border-amber-100 shadow-sm">
-                                <Star size={14} className="text-amber-500 fill-amber-500" />
-                                <span className="text-xs font-black text-amber-700">{points} Rewards Points</span>
+                        <h1 className="text-4xl font-black tracking-tight">{user?.name}</h1>
+                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2">
+                            <p className="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest text-xs">Certified Citizen Reporter</p>
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 hidden sm:block" />
+                            <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full border border-amber-100 dark:border-amber-900/30 shadow-sm text-amber-700 dark:text-amber-400">
+                                <Star size={14} className="fill-current" />
+                                <span className="text-xs font-black">{points} Rewards Points</span>
                             </div>
                         </div>
                     </div>
                     
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-slate-500 font-medium pt-2">
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-slate-500 dark:text-slate-400 font-medium pt-2">
                         <div className="flex items-center gap-2">
                             <MapPin size={18} className="text-slate-400" />
                             <span className="text-sm">{user?.zone || 'N/A'} Zone</span>
@@ -162,18 +204,24 @@ const CitizenProfile = () => {
                             <span className="text-sm">{user?.email}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Phone size={18} className="text-slate-400" />
-                            <span className="text-sm">{user?.phone || 'N/A'}</span>
+                            <Calendar size={18} className="text-slate-400" />
+                            <span className="text-sm">Joined {memberSince}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                     <button 
                         onClick={handleOpenEdit}
-                        className="px-8 py-4 bg-white border border-slate-100 rounded-[1.5rem] font-black text-slate-700 hover:bg-slate-50 transition-all shadow-sm hover:shadow-md active:scale-95"
+                        className="px-8 py-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[1.5rem] font-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm hover:shadow-md active:scale-95"
                     >
                         EDIT PROFILE
+                    </button>
+                    <button 
+                        onClick={() => setIsChangingPassword(true)}
+                        className="px-8 py-4 bg-slate-900 dark:bg-emerald-600 text-white rounded-[1.5rem] font-black hover:bg-slate-800 dark:hover:bg-emerald-500 transition-all shadow-xl shadow-slate-200 dark:shadow-none active:scale-95"
+                    >
+                        SECURITY
                     </button>
                 </div>
             </div>
@@ -181,46 +229,46 @@ const CitizenProfile = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 {/* Stats & Verify Section */}
                 <div className="lg:col-span-4 space-y-8">
-                    <div className="glass-card p-8 rounded-[2.5rem] shadow-xl border-white/40">
-                        <h2 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
+                    <div className="glass-card p-8 rounded-[2.5rem] shadow-xl">
+                        <h2 className="text-xl font-black mb-8 flex items-center gap-3">
                             <BarChart2 className="text-indigo-500" />
                             Activity Stats
                         </h2>
                         
                         <div className="space-y-6">
-                            <div className="flex items-center justify-between p-5 bg-slate-50/50 rounded-2xl border border-slate-100">
+                            <div className="flex items-center justify-between p-5 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm">
+                                    <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-slate-400 shadow-sm">
                                         <Award size={20} />
                                     </div>
-                                    <span className="font-bold text-slate-600">Total Reports</span>
+                                    <span className="font-bold text-slate-600 dark:text-slate-400">Total Reports</span>
                                 </div>
-                                <span className="text-2xl font-black text-slate-800">{stats.totalRec}</span>
+                                <span className="text-2xl font-black">{stats.totalRec}</span>
                             </div>
 
-                            <div className="flex items-center justify-between p-5 bg-emerald-50/30 rounded-2xl border border-emerald-100/50">
+                            <div className="flex items-center justify-between p-5 bg-emerald-50/30 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100/50 dark:border-emerald-900/30">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-500 shadow-sm">
+                                    <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-emerald-500 shadow-sm">
                                         <CheckCircle size={20} />
                                     </div>
-                                    <span className="font-bold text-emerald-800/70">Resolved Cases</span>
+                                    <span className="font-bold text-emerald-800/70 dark:text-emerald-400/70">Resolved Cases</span>
                                 </div>
-                                <span className="text-2xl font-black text-emerald-600">{stats.resolvedRec}</span>
+                                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{stats.resolvedRec}</span>
                             </div>
 
-                            <div className="flex items-center justify-between p-5 bg-amber-50/30 rounded-2xl border border-amber-100/50">
+                            <div className="flex items-center justify-between p-5 bg-amber-50/30 dark:bg-amber-900/10 rounded-2xl border border-amber-100/50 dark:border-amber-900/30">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-amber-500 shadow-sm">
+                                    <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-amber-500 shadow-sm">
                                         <Clock size={20} />
                                     </div>
-                                    <span className="font-bold text-amber-800/70">Pending Action</span>
+                                    <span className="font-bold text-amber-800/70 dark:text-amber-400/70">Pending Action</span>
                                 </div>
-                                <span className="text-2xl font-black text-amber-600">{stats.pendingRec}</span>
+                                <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{stats.pendingRec}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="glass-card p-8 rounded-[2.5rem] bg-indigo-900 text-white shadow-xl relative overflow-hidden group border-none">
+                    <div className="glass-card p-8 rounded-[2.5rem] bg-indigo-900 dark:bg-indigo-950 text-white shadow-xl relative overflow-hidden group border-none">
                         <div className="relative z-10">
                             <h3 className="text-xl font-black mb-4 flex items-center gap-3">
                                 <ShieldCheck className="text-emerald-400" />
@@ -246,13 +294,13 @@ const CitizenProfile = () => {
                 {/* Badges & Rewards Section */}
                 <div className="lg:col-span-8 space-y-10">
                     {/* Badges */}
-                    <div className="glass-card p-10 rounded-[3rem] shadow-xl border-white/40">
+                    <div className="glass-card p-10 rounded-[3rem] shadow-xl">
                         <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-6">
-                            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-4">
+                            <h2 className="text-2xl font-black flex items-center gap-4">
                                 <Trophy className="text-amber-500" size={28} />
                                 Achievements & Badges
                             </h2>
-                            <div className="px-6 py-2 bg-amber-50 border border-amber-100 rounded-2xl text-amber-600 font-extrabold text-sm shadow-sm">
+                            <div className="px-6 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-2xl text-amber-600 dark:text-amber-400 font-extrabold text-sm shadow-sm">
                                 Level {Math.floor(stats.resolvedRec / 5) + 1}
                             </div>
                         </div>
@@ -264,17 +312,17 @@ const CitizenProfile = () => {
                                     <div key={badge._id} className={`flex flex-col items-center text-center group relative cursor-help ${!isEarned ? 'opacity-40 grayscale hover:grayscale-0 transition-all' : ''}`}>
                                         <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center text-4xl mb-4 transition-all duration-500 relative ${
                                             isEarned 
-                                            ? 'bg-gradient-to-tr from-amber-100 to-yellow-50 shadow-lg group-hover:scale-110 group-hover:rotate-6' 
-                                            : 'bg-slate-50 border-2 border-dashed border-slate-200 group-hover:border-emerald-300'
+                                            ? 'bg-gradient-to-tr from-amber-100 to-yellow-50 dark:from-amber-900/40 dark:to-yellow-900/20 shadow-lg group-hover:scale-110 group-hover:rotate-6' 
+                                            : 'bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 dark:border-slate-700 group-hover:border-emerald-300'
                                         }`}>
                                             {badge.icon}
                                             {isEarned && (
-                                                <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-1 shadow-md border-2 border-white">
+                                                <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-1 shadow-md border-2 border-white dark:border-slate-800">
                                                     <CheckCircle size={10} strokeWidth={4} />
                                                 </div>
                                             )}
                                         </div>
-                                        <h4 className="font-black text-slate-800 text-sm mb-1 group-hover:text-emerald-600 transition-colors">
+                                        <h4 className="font-black text-sm mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                                             {badge.name}
                                         </h4>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">
@@ -282,10 +330,10 @@ const CitizenProfile = () => {
                                         </p>
                                         
                                         {/* Tooltip */}
-                                        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 bg-slate-900 text-white rounded-2xl p-4 text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-2xl">
+                                        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl p-4 text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-2xl">
                                             <p className="font-black mb-1 text-emerald-400">{badge.name}</p>
                                             <p className="text-slate-300 font-medium italic leading-relaxed">{badge.description}</p>
-                                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-900 rotate-45" />
+                                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-900 dark:bg-slate-800 rotate-45" />
                                         </div>
                                     </div>
                                 );
@@ -293,8 +341,8 @@ const CitizenProfile = () => {
                         </div>
 
                         {badges.length === 0 && (
-                            <div className="text-center py-16 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 mt-10">
-                                <Award size={48} className="text-slate-300 mx-auto mb-4" />
+                            <div className="text-center py-16 bg-slate-50/50 dark:bg-slate-800/30 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-700 mt-10">
+                                <Award size={48} className="text-slate-300 dark:text-slate-600 mx-auto mb-4" />
                                 <p className="text-slate-500 font-black text-lg">No badges earned yet.</p>
                                 <p className="text-slate-400 text-sm font-medium">Submit reports and get them resolved to unlock achievements!</p>
                             </div>
@@ -302,13 +350,13 @@ const CitizenProfile = () => {
                     </div>
 
                     {/* Rewards Shop */}
-                    <div className="glass-card p-10 rounded-[3rem] shadow-xl border-white/40 bg-gradient-to-br from-white to-slate-50/50">
+                    <div className="glass-card p-10 rounded-[3rem] shadow-xl bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900/50">
                         <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-6">
-                            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-4">
+                            <h2 className="text-2xl font-black flex items-center gap-4">
                                 <Star className="text-indigo-500 fill-indigo-500" size={28} />
                                 Rewards Shop
                             </h2>
-                            <div className="px-6 py-2 bg-indigo-50 border border-indigo-100 rounded-2xl text-indigo-600 font-extrabold text-sm shadow-sm flex items-center gap-2">
+                            <div className="px-6 py-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400 font-extrabold text-sm shadow-sm flex items-center gap-2">
                                 <Activity size={16} />
                                 {points} Available
                             </div>
@@ -316,23 +364,23 @@ const CitizenProfile = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {availableRewards.map((reward) => (
-                                <div key={reward.id} className="p-6 bg-white border border-slate-100 rounded-[2rem] hover:shadow-xl transition-all group relative overflow-hidden">
+                                <div key={reward.id} className="p-6 bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-[2rem] hover:shadow-xl transition-all group relative overflow-hidden">
                                     <div className="flex items-start gap-5 relative z-10">
-                                        <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner group-hover:bg-indigo-50 transition-colors">
+                                        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-700/50 rounded-2xl flex items-center justify-center text-3xl shadow-inner group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/20 transition-colors">
                                             {reward.icon}
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="font-black text-slate-800 leading-tight mb-1 group-hover:text-indigo-600 transition-colors">{reward.name}</h3>
+                                            <h3 className="font-black leading-tight mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{reward.name}</h3>
                                             <p className="text-slate-400 text-xs font-medium mb-4">{reward.description}</p>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-lg font-black text-indigo-600">{reward.points} PTS</span>
+                                                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">{reward.points} PTS</span>
                                                 <button 
                                                     onClick={() => handleRedeem(reward)}
                                                     disabled={points < reward.points}
                                                     className={`px-5 py-2 rounded-xl text-xs font-black transition-all ${
                                                         points >= reward.points 
-                                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 hover:scale-105 active:scale-95' 
-                                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none hover:scale-105 active:scale-95' 
+                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                                                     }`}
                                                 >
                                                     REDEEM
@@ -340,7 +388,7 @@ const CitizenProfile = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-100 transition-colors" />
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/20 transition-colors" />
                                 </div>
                             ))}
                         </div>
@@ -351,15 +399,15 @@ const CitizenProfile = () => {
             {/* Edit Profile Modal */}
             {isEditing && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden animate-scale-up">
-                        <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white/20 dark:border-slate-800 overflow-hidden animate-scale-up">
+                        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
                             <div>
-                                <h2 className="text-2xl font-black text-slate-900">Edit Profile</h2>
+                                <h2 className="text-2xl font-black">Edit Profile</h2>
                                 <p className="text-slate-500 text-sm font-medium">Update your citizen account details</p>
                             </div>
                             <button 
                                 onClick={() => setIsEditing(false)}
-                                className="p-3 hover:bg-white rounded-2xl text-slate-400 hover:text-slate-600 transition-all shadow-sm border border-transparent hover:border-slate-100"
+                                className="p-3 hover:bg-white dark:hover:bg-slate-800 rounded-2xl text-slate-400 hover:text-slate-600 transition-all shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
                             >
                                 <X size={20} />
                             </button>
@@ -376,7 +424,7 @@ const CitizenProfile = () => {
                                         value={editForm.name}
                                         onChange={handleEditChange}
                                         required
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none font-bold text-slate-700 transition-all"
+                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none font-bold text-slate-700 dark:text-slate-200 transition-all"
                                         placeholder="Enter your name"
                                     />
                                 </div>
@@ -393,7 +441,7 @@ const CitizenProfile = () => {
                                             value={editForm.phone}
                                             onChange={handleEditChange}
                                             required
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none font-bold text-slate-700 transition-all"
+                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none font-bold text-slate-700 dark:text-slate-200 transition-all"
                                             placeholder="Phone number"
                                         />
                                     </div>
@@ -408,7 +456,7 @@ const CitizenProfile = () => {
                                             value={editForm.zone}
                                             onChange={handleEditChange}
                                             required
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none font-bold text-slate-700 transition-all appearance-none cursor-pointer"
+                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none font-bold text-slate-700 dark:text-slate-200 transition-all appearance-none cursor-pointer"
                                         >
                                             <option value="">Select Zone</option>
                                             <option value="North">North Zone</option>
@@ -425,14 +473,14 @@ const CitizenProfile = () => {
                                 <button 
                                     type="button"
                                     onClick={() => setIsEditing(false)}
-                                    className="flex-1 px-6 py-4 border border-slate-100 rounded-2xl font-black text-slate-500 hover:bg-slate-50 transition-all"
+                                    className="flex-1 px-6 py-4 border border-slate-100 dark:border-slate-700 rounded-2xl font-black text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
                                 >
                                     CANCEL
                                 </button>
                                 <button 
                                     type="submit"
                                     disabled={updateLoading}
-                                    className="flex-1 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="flex-1 px-6 py-4 bg-slate-900 dark:bg-emerald-600 text-white rounded-2xl font-black hover:bg-slate-800 dark:hover:bg-emerald-500 transition-all shadow-xl shadow-slate-200 dark:shadow-none disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {updateLoading ? (
                                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -440,6 +488,103 @@ const CitizenProfile = () => {
                                         <>
                                             <Save size={18} />
                                             SAVE CHANGES
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Change Password Modal */}
+            {isChangingPassword && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white/20 dark:border-slate-800 overflow-hidden animate-scale-up">
+                        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+                            <div>
+                                <h2 className="text-2xl font-black">Security Settings</h2>
+                                <p className="text-slate-500 text-sm font-medium">Update your account password</p>
+                            </div>
+                            <button 
+                                onClick={() => setIsChangingPassword(false)}
+                                className="p-3 hover:bg-white dark:hover:bg-slate-800 rounded-2xl text-slate-400 hover:text-slate-600 transition-all shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdatePassword} className="p-8 space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Current Password</label>
+                                <div className="relative group">
+                                    <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                                    <input 
+                                        type="password"
+                                        name="currentPassword"
+                                        value={passwordForm.currentPassword}
+                                        onChange={handlePasswordChange}
+                                        required
+                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-bold text-slate-700 dark:text-slate-200 transition-all"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">New Password</label>
+                                    <div className="relative group">
+                                        <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                        <input 
+                                            type="password"
+                                            name="newPassword"
+                                            value={passwordForm.newPassword}
+                                            onChange={handlePasswordChange}
+                                            required
+                                            minLength="8"
+                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none font-bold text-slate-700 dark:text-slate-200 transition-all"
+                                            placeholder="Min. 8 characters"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm New Password</label>
+                                    <div className="relative group">
+                                        <ShieldCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                        <input 
+                                            type="password"
+                                            name="confirmPassword"
+                                            value={passwordForm.confirmPassword}
+                                            onChange={handlePasswordChange}
+                                            required
+                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none font-bold text-slate-700 dark:text-slate-200 transition-all"
+                                            placeholder="Re-type new password"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex gap-4">
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsChangingPassword(false)}
+                                    className="flex-1 px-6 py-4 border border-slate-100 dark:border-slate-700 rounded-2xl font-black text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                                >
+                                    CANCEL
+                                </button>
+                                <button 
+                                    type="submit"
+                                    disabled={passwordLoading}
+                                    className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 dark:shadow-none disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {passwordLoading ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <Save size={18} />
+                                            UPDATE PASSWORD
                                         </>
                                     )}
                                 </button>
