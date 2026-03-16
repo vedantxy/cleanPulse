@@ -3,22 +3,36 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bg-main: #f8fafc; /* slate-50 */
+    --text-main: #0f172a; /* slate-900 */
+    --card-bg: rgba(255, 255, 255, 0.8);
+    --border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .dark {
+    --bg-main: #020617; /* Very dark blue */
+    --text-main: #f1f5f9; /* slate-100 */
+    --card-bg: rgba(15, 23, 42, 0.8); /* slate-900/80 */
+    --border-color: rgba(255, 255, 255, 0.1);
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-[var(--bg-main)] text-[var(--text-main)] antialiased transition-colors duration-300;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+    @apply bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border-color)] shadow-xl;
   }
   
   .btn-primary {
-    @apply bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-emerald-200;
+    @apply bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-emerald-200 dark:hover:shadow-emerald-900/40;
   }
 
   .input-field {
-    @apply w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all duration-200 bg-white/50 backdrop-blur-sm;
+    @apply w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all duration-200 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm text-[var(--text-main)];
   }
 }
 
