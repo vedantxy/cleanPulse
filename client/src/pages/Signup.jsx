@@ -138,10 +138,11 @@ const Signup = () => {
                                         onChange={onChange}
                                     >
                                         <option value="">Choose your residential area...</option>
-                                        <option value="Zone A">Zone A (Old City)</option>
-                                        <option value="Zone B">Zone B (Urban North)</option>
-                                        <option value="Zone C">Zone C (Industrial East)</option>
-                                        <option value="Zone D">Zone D (Garden West)</option>
+                                        <option value="North">North Zone</option>
+                                        <option value="South">South Zone</option>
+                                        <option value="East">East Zone</option>
+                                        <option value="West">West Zone</option>
+                                        <option value="Central">Central Zone</option>
                                     </select>
                                     <div className="absolute right-4 top-4 pointer-events-none text-slate-400">
                                         <ArrowRight size={16} className="rotate-90" />

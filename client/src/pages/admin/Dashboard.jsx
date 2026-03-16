@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { BarChart3, AlertTriangle, Users, CheckCircle, Clock, MapPin, TrendingUp, Loader2, AlertCircle, FileText, LayoutGrid, UserCheck, PieChart as PieChartIcon, Activity } from 'lucide-react';
+import { BarChart3, AlertTriangle, Users, CheckCircle, Clock, MapPin, TrendingUp, Loader2, AlertCircle, FileText, LayoutGrid, UserCheck, PieChart as PieChartIcon, Activity, Award } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     PieChart, Pie, Cell, LineChart, Line, Legend 
@@ -24,7 +24,10 @@ const AdminDashboard = () => {
                 
                 setData({
                     ...dashRes.data,
-                    stats: analyticsRes.data.stats,
+                    stats: { 
+                        ...dashRes.data.stats, 
+                        ...analyticsRes.data.stats 
+                    },
                     zoneData: analyticsRes.data.zoneData,
                     topCollectors: analyticsRes.data.topCollectors,
                     trends: trendsRes.data

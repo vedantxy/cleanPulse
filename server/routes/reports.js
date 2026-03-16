@@ -23,6 +23,15 @@ router.post('/', auth, async (req, res) => {
         });
 
         const report = await newReport.save();
+        
+        // Award points for reporting (+10)
+        const User = require('../models/User');
+        await User.findByIdAndUpdate(req.user.id, { $inc: { rewardPoints: 10 } });
+        
+        // Check for badges
+        const { checkAndAwardBadges } = require('../utils/badgeHandler');
+        await checkAndAwardBadges(req.user.id);
+        
         res.json(report);
     } catch (err) {
         console.error('Report submission error:', err);
@@ -196,8 +205,11 @@ router.put('/:id/status', auth, async (req, res) => {
         report.status = status;
         await report.save();
 
-        // If report is resolved, check for badges for the citizen
+        // If report is resolved, award points (+50) and check for badges for the citizen
         if (status === 'Resolved') {
+            const User = require('../models/User');
+            await User.findByIdAndUpdate(report.citizenId, { $inc: { rewardPoints: 50 } });
+            
             const { checkAndAwardBadges } = require('../utils/badgeHandler');
             await checkAndAwardBadges(report.citizenId);
         }

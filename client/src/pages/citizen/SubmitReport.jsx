@@ -182,10 +182,11 @@ const SubmitReport = ({ isEdit = false }) => {
                                     className="input-field w-full appearance-none bg-white font-bold"
                                 >
                                     <option value="">Select Zone</option>
-                                    <option value="Zone A">Zone A (Old City)</option>
-                                    <option value="Zone B">Zone B (Urban North)</option>
-                                    <option value="Zone C">Zone C (Industrial East)</option>
-                                    <option value="Zone D">Zone D (Garden West)</option>
+                                    <option value="North">North Zone</option>
+                                    <option value="South">South Zone</option>
+                                    <option value="East">East Zone</option>
+                                    <option value="West">West Zone</option>
+                                    <option value="Central">Central Zone</option>
                                 </select>
                             </div>
 
