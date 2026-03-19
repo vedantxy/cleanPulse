@@ -37,11 +37,4 @@ Follow these steps to deploy your application to the cloud.
 5. **Vite Proxy Note**: In production, Vite proxy does not work. You should update your `axios` base URL or use absolute URLs.
 
 ### Important Note on Vite Proxy
-Your current frontend uses a proxy in `vite.config.js`. For production, you should update `client/src/context/AuthContext.jsx` and other files to use your production Backend URL if not using a unified proxy.
-
-Example `client/src/api/config.js`:
-```javascript
-import axios from 'axios';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-axios.defaults.baseURL = API_URL;
-```
+Your current frontend uses a central API configuration in `client/src/api/api.js`. For production, the application will automatically use the `VITE_API_URL` environment variable.
