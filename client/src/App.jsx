@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -6,38 +5,43 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
-import CitizenDashboard from './pages/citizen/Dashboard';
+import Dashboard from './pages/Dashboard';
 import SubmitReport from './pages/citizen/SubmitReport';
 import MyReports from './pages/citizen/MyReports';
 import CitizenProfile from './pages/citizen/Profile';
-import CollectorDashboard from './pages/collector/Dashboard';
+import Leaderboard from './pages/citizen/Leaderboard';
 import CollectorPickups from './pages/collector/Pickups';
-import AdminDashboard from './pages/admin/Dashboard';
+import CollectorProfile from './pages/collector/Profile';
 import AdminReports from './pages/admin/Reports';
 import AdminUsers from './pages/admin/Users';
 import ProtectedRoute from './components/ProtectedRoute';
+import NatureBackground from './components/NatureBackground';
 
 function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <Router>
-          <div className="flex flex-col min-h-screen">
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <div className="flex flex-col min-h-screen relative overflow-x-hidden">
+            <NatureBackground />
             <Navbar />
-            <main className="flex-grow">
+            <main className="flex-grow z-10">
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/login" element={<Login />} />
                 
                 <Route 
-                  path="/citizen/dashboard" 
+                  path="/dashboard" 
                   element={
-                    <ProtectedRoute role="citizen">
-                      <CitizenDashboard />
+                    <ProtectedRoute>
+                      <Dashboard />
                     </ProtectedRoute>
                   } 
                 />
+                <Route path="/citizen/dashboard" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/collector/dashboard" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/admin/dashboard" element={<Navigate to="/dashboard" replace />} />
 
                 <Route 
                   path="/citizen/report" 
@@ -74,15 +78,17 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-                
+
                 <Route 
-                  path="/collector/dashboard" 
+                  path="/citizen/leaderboard" 
                   element={
-                    <ProtectedRoute role="collector">
-                      <CollectorDashboard />
+                    <ProtectedRoute role="citizen">
+                      <Leaderboard />
                     </ProtectedRoute>
                   } 
                 />
+                
+
 
                 <Route 
                   path="/collector/pickups" 
@@ -94,10 +100,10 @@ function App() {
                 />
                 
                 <Route 
-                  path="/admin/dashboard" 
+                  path="/collector/profile" 
                   element={
-                    <ProtectedRoute role="admin">
-                      <AdminDashboard />
+                    <ProtectedRoute role="collector">
+                      <CollectorProfile />
                     </ProtectedRoute>
                   } 
                 />

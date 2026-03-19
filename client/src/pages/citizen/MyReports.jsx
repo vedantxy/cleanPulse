@@ -1,391 +1,296 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { 
+    Search, 
+    Filter, 
     Trash2, 
-    Edit, 
+    Edit3,
+    AlertCircle, 
     Clock, 
     CheckCircle2, 
-    AlertCircle, 
-    MapPin, 
-    Calendar, 
     ArrowLeft,
     Loader2,
-    X,
-    Filter,
-    Search,
-    ChevronDown
+    ChevronDown,
+    LayoutGrid,
+    Activity,
+    Leaf,
+    Sparkles
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import useDebounce from '../../hooks/useDebounce';
+import { useNavigate } from 'react-router-dom';
 
 const MyReports = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
-    const locationState = useLocation();
-    
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     
-    // Initial filter from query params
-    const queryParams = new URLSearchParams(locationState.search);
-    const initialStatus = queryParams.get('status') || 'All';
-
-    const [filter, setFilter] = useState(initialStatus);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
     const [urgencyFilter, setUrgencyFilter] = useState('All');
-    const [sortBy, setSortBy] = useState('newest');
-
-    // Pagination States
+    const [searchTerm, setSearchTerm] = useState('');
+    
     const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(6);
     const [totalPages, setTotalPages] = useState(1);
     const [totalReports, setTotalReports] = useState(0);
 
-    const debouncedSearch = useDebounce(searchTerm, 500);
-
-    // React to URL changes (e.g., clicking a different filter in the Navbar or Dashboard)
-    useEffect(() => {
-        const status = queryParams.get('status') || 'All';
-        if (status !== filter) setFilter(status);
-    }, [locationState.search]);
-
-    useEffect(() => {
-        // We only fetch when page or status/search/urgency/sort changes
-        fetchReports();
-    }, [filter, debouncedSearch, urgencyFilter, sortBy, page, limit]);
-
-    // Handle initial state and reset page on filter change
-    useEffect(() => {
-        if (page !== 1) setPage(1);
-    }, [filter, debouncedSearch, urgencyFilter, sortBy]);
-
-    const fetchReports = async () => {
+    const fetchReports = useCallback(async () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5000/api/reports', {
+            const res = await axios.get(`/api/reports`, {
                 headers: { 'x-auth-token': token },
                 params: {
-                    status: filter,
-                    search: debouncedSearch,
+                    status: statusFilter,
                     urgency: urgencyFilter,
-                    sortBy: sortBy,
-                    page: page,
-                    limit: limit
+                    search: searchTerm,
+                    page,
+                    limit: 6
                 }
             });
-            setReports(res.data.reports || []);
-            setTotalPages(res.data.totalPages || 0);
-            setTotalReports(res.data.totalReports || 0);
-        } catch (err) {
-            const msg = err.response?.data?.message || 'Failed to fetch your reports. Please try again.';
-            setError(msg);
-            console.error(err);
+            setReports(res.data.reports);
+            setTotalPages(res.data.totalPages);
+            setTotalReports(res.data.totalReports);
+        } catch {
+            console.error('Connection error. Could not load reports.');
         } finally {
             setLoading(false);
         }
-    };
+    }, [statusFilter, urgencyFilter, searchTerm, page]);
+
+    useEffect(() => {
+        fetchReports();
+    }, [statusFilter, urgencyFilter, page, fetchReports]);
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) return;
-
+        if (!window.confirm('Delete this report?')) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5000/api/reports/${id}`, {
+            await axios.delete(`/api/reports/${id}`, {
                 headers: { 'x-auth-token': token }
             });
-            setReports(reports.filter(report => report._id !== id));
-        } catch (err) {
-            alert(err.response?.data?.message || 'Failed to delete report.');
+            fetchReports();
+        } catch {
+            alert('Deletion failed.');
         }
     };
 
-    const getStatusStyle = (status) => {
+    const getStatusBadgeClass = (status) => {
         switch (status) {
-            case 'Pending': return 'bg-amber-50 text-amber-600 border-amber-100';
-            case 'In Progress': return 'bg-blue-50 text-blue-600 border-blue-100';
-            case 'Resolved': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-            case 'Rejected': return 'bg-rose-50 text-rose-600 border-rose-100';
-            default: return 'bg-slate-50 text-slate-600 border-slate-100';
+            case 'Resolved': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+            case 'In Progress': return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20';
+            case 'Pending': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+            case 'Rejected': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
+            default: return 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20';
         }
     };
 
-    const getUrgencyIcon = (urgency) => {
+    const getWasteBadgeClass = (type) => {
+        const base = 'nature-badge ';
+        switch (type) {
+            case 'Recyclable': return base + 'nature-badge-recyclable';
+            case 'Compostable': return base + 'nature-badge-compostable';
+            case 'Hazardous': return base + 'nature-badge-hazardous';
+            case 'E-Waste': return base + 'nature-badge-ewaste';
+            default: return base + 'nature-badge-general';
+        }
+    };
+
+    const getUrgencyColor = (urgency) => {
         switch (urgency) {
-            case 'High': return '🔴';
-            case 'Medium': return '🟡';
-            case 'Low': return '🟢';
-            default: return '⚪';
+            case 'High': return 'text-rose-500';
+            case 'Medium': return 'text-amber-500';
+            case 'Low': return 'text-emerald-500';
+            default: return 'text-slate-500';
         }
     };
-
-    if (loading && reports.length === 0) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
-                <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
-                <p className="text-slate-500 font-bold animate-pulse">Loading your reports...</p>
-            </div>
-        );
-    }
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 bg-slate-50/50">
-            <div className="max-w-5xl mx-auto animate-fade-in">
-                
-                {/* Header Area */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-                    <div className="flex items-center space-x-4">
-                        <button 
-                            onClick={() => navigate('/citizen/dashboard')}
-                            className="p-3 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all text-slate-600 hover:text-emerald-600"
-                        >
-                            <ArrowLeft size={20} />
-                        </button>
-                        <div>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">My Reports</h1>
-                            <p className="text-slate-500 font-medium">Track and manage your garbage submissions</p>
-                        </div>
-                    </div>
-
-                    {/* Filter Tabs */}
-                    <div className="flex items-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 overflow-x-auto no-scrollbar">
-                        {['All', 'Pending', 'In Progress', 'Resolved'].map((status) => (
-                            <button
-                                key={status}
-                                onClick={() => setFilter(status)}
-                                className={`px-5 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-                                    filter === status 
-                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' 
-                                    : 'text-slate-500 hover:bg-slate-50'
-                                }`}
-                            >
-                                {status}
-                            </button>
-                        ))}
+        <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-slide-up text-[var(--text-main)]">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+                <div className="flex items-center space-x-6">
+                    <button 
+                        onClick={() => navigate('/dashboard')}
+                        className="p-4 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-sm hover:border-[var(--accent-green)] transition-all text-[var(--text-muted)] hover:text-[var(--accent-green)] active:scale-95"
+                    >
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div>
+                        <h1 className="text-4xl font-black tracking-tighter font-['Playfair+Display'] uppercase flex items-center gap-4">
+                            <Leaf className="text-[var(--accent-green)]" size={32} />
+                            My Reports
+                        </h1>
+                        <p className="text-[var(--text-muted)] font-bold uppercase tracking-[0.2em] text-[10px] mt-1 italic">
+                            Total Reports: {totalReports}
+                        </p>
                     </div>
                 </div>
+                
+                <div className="px-6 py-3 bg-[var(--accent-green)]/10 border border-[var(--accent-green)]/20 rounded-2xl flex items-center space-x-3">
+                     <Sparkles size={18} className="text-[var(--accent-green)] animate-pulse" />
+                     <span className="text-[var(--accent-green)] font-black text-[10px] tracking-widest uppercase">Verified User</span>
+                </div>
+            </div>
 
-                {/* Search and Advanced Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-10">
-                    {/* Search Bar */}
-                    <div className="md:col-span-6 relative group">
-                        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+            {/* Tactical Grid Filters */}
+            <div className="leaf-card mb-12 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--accent-leaf)]/5 rounded-full blur-[80px]" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                    <div className="relative group">
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" size={20} />
                         <input 
-                            type="text" 
-                            placeholder="Search by area, landmark or description..."
+                            type="text"
+                            placeholder="Search location..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-700 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all outline-none shadow-sm"
+                            onKeyPress={(e) => e.key === 'Enter' && fetchReports()}
+                            className="earth-input pl-14 font-bold tracking-widest text-[11px]"
                         />
                     </div>
 
-                    {/* Urgency Filter */}
-                    <div className="md:col-span-3 relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <AlertCircle size={18} />
-                        </div>
-                        <select
+                    <div className="relative group">
+                        <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" size={20} />
+                        <select 
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="earth-input pl-14 pr-10 appearance-none font-bold tracking-widest text-[10px] uppercase cursor-pointer"
+                        >
+                            <option value="All">All Status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none group-focus-within:rotate-180 transition-transform" size={16} />
+                    </div>
+
+                    <div className="relative group">
+                        <AlertCircle className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" size={20} />
+                        <select 
                             value={urgencyFilter}
                             onChange={(e) => setUrgencyFilter(e.target.value)}
-                            className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-10 font-bold text-slate-700 appearance-none focus:border-emerald-500 transition-all outline-none shadow-sm"
+                            className="earth-input pl-14 pr-10 appearance-none font-bold tracking-widest text-[10px] uppercase cursor-pointer"
                         >
-                            <option value="All">All Urgency</option>
-                            <option value="High">🔴 High</option>
-                            <option value="Medium">🟡 Medium</option>
-                            <option value="Low">🟢 Low</option>
+                            <option value="All">All Priority</option>
+                            <option value="High">Urgent</option>
+                            <option value="Medium">Moderate</option>
+                            <option value="Low">Low</option>
                         </select>
-                        <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                    </div>
-
-                    {/* Sort By */}
-                    <div className="md:col-span-3 relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <Filter size={18} />
-                        </div>
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                            className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-10 font-bold text-slate-700 appearance-none focus:border-emerald-500 transition-all outline-none shadow-sm"
-                        >
-                            <option value="newest">Newest First</option>
-                            <option value="oldest">Oldest First</option>
-                            <option value="urgency">Urgency (H to L)</option>
-                        </select>
-                        <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none group-focus-within:rotate-180 transition-transform" size={16} />
                     </div>
                 </div>
+            </div>
 
-                {error && (
-                    <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center space-x-3 text-rose-600">
-                        <AlertCircle size={20} />
-                        <p className="font-bold">{error}</p>
-                    </div>
-                )}
-
-                {/* Reports Grid & Pagination */}
-                {reports.length > 0 ? (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-                            {reports.map((report) => (
-                                <div key={report._id} className="glass-card p-6 md:p-8 rounded-[2.5rem] shadow-lg border border-white/40 group hover:shadow-2xl transition-all duration-500 relative overflow-hidden bg-white/70">
-                                    <div className="absolute top-6 right-6 flex items-center space-x-2">
-                                        <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border-2 ${getStatusStyle(report.status)}`}>
-                                            {report.status}
-                                        </span>
+            {loading ? (
+                <div className="py-24 flex flex-col items-center justify-center">
+                    <Loader2 className="w-16 h-16 text-[var(--accent-green)] animate-spin" />
+                    <p className="mt-6 text-[var(--accent-green)] font-black tracking-[0.3em] uppercase text-xs animate-pulse">Loading reports...</p>
+                </div>
+            ) : reports.length > 0 ? (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {reports.map((report) => (
+                            <div key={report._id} className="leaf-card group relative overflow-hidden flex flex-col h-full hover:shadow-2xl">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-leaf)]/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform" />
+                                
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className={`Nature-Badge px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${getStatusBadgeClass(report.status)}`}>
+                                        {report.status === 'Resolved' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                                        {report.status}
                                     </div>
-
-                                    <div className="space-y-6">
-                                        <div>
-                                            <div className="flex items-center space-x-2 text-slate-400 mb-2">
-                                                <Calendar size={14} />
-                                                <span className="text-xs font-bold uppercase tracking-tight">
-                                                    {new Date(report.createdAt).toLocaleDateString('en-US', { 
-                                                        month: 'short', day: 'numeric', year: 'numeric' 
-                                                    })}
-                                                </span>
-                                            </div>
-                                            <h3 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-                                                <MapPin className="text-rose-500 w-5 h-5 shrink-0" />
-                                                <span className="truncate">{report.location}</span>
-                                            </h3>
-                                            <p className="text-slate-500 text-sm font-medium mt-1 ml-7">
-                                                {report.landmark ? `Near ${report.landmark}` : report.zone}
-                                            </p>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50/50 rounded-3xl border border-slate-100/50">
-                                            <div className="space-y-1">
-                                                <span className="text-[10px] uppercase tracking-widest font-black text-slate-400">Waste Type</span>
-                                                <p className="text-sm font-bold text-slate-700">{report.garbageType}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[10px] uppercase tracking-widest font-black text-slate-400">Urgency</span>
-                                                <p className="text-sm font-bold text-slate-700">{getUrgencyIcon(report.urgency)} {report.urgency}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-3 pt-2">
-                                            {report.status === 'Pending' ? (
-                                                <>
-                                                    <button 
-                                                        onClick={() => navigate(`/citizen/edit-report/${report._id}`)}
-                                                        className="flex-1 flex items-center justify-center space-x-2 py-4 bg-white border-2 border-slate-100 rounded-2xl text-slate-600 font-bold hover:border-emerald-200 hover:text-emerald-600 hover:bg-emerald-50/30 transition-all shadow-sm"
-                                                    >
-                                                        <Edit size={18} />
-                                                        <span>Edit Report</span>
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDelete(report._id)}
-                                                        className="w-14 h-14 flex items-center justify-center bg-white border-2 border-slate-100 rounded-2xl text-slate-400 hover:border-rose-200 hover:text-rose-600 hover:bg-rose-50/30 transition-all shadow-sm"
-                                                    >
-                                                        <Trash2 size={20} />
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <button 
-                                                    disabled
-                                                    className="w-full py-4 bg-slate-100/50 border-2 border-slate-100 rounded-2xl text-slate-400 font-bold flex items-center justify-center gap-2 cursor-not-allowed"
-                                                >
-                                                    <Clock size={18} />
-                                                    <span>Under Processing</span>
-                                                </button>
-                                            )}
-                                        </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-2.5 h-2.5 rounded-full ${urgencyFilter === 'High' ? 'animate-pulse' : ''} bg-current ${getUrgencyColor(report.urgency)}`} />
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${getUrgencyColor(report.urgency)}`}>{report.urgency}</span>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
 
-                        {/* Pagination Controls */}
-                        {totalPages > 0 && (
-                            <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 pb-8">
-                                <div className="flex items-center space-x-2">
-                                    <span className="text-slate-500 font-bold text-sm">Show</span>
-                                    <select 
-                                        value={limit}
-                                        onChange={(e) => setLimit(parseInt(e.target.value))}
-                                        className="bg-white border-2 border-slate-100 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all text-sm"
-                                    >
-                                        {[6, 12, 24, 48].map(n => (
-                                            <option key={n} value={n}>{n} per page</option>
-                                        ))}
-                                    </select>
-                                    <span className="text-slate-400 text-sm font-medium ml-2">
-                                        Total: <span className="text-slate-900 font-bold">{totalReports}</span> reports
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center space-x-2">
-                                    <button
-                                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                                        disabled={page === 1}
-                                        className={`p-3 rounded-xl border-2 transition-all ${
-                                            page === 1 
-                                            ? 'bg-slate-50 border-slate-50 text-slate-300 cursor-not-allowed' 
-                                            : 'bg-white border-slate-100 text-slate-600 hover:border-emerald-200 hover:text-emerald-600 shadow-sm'
-                                        }`}
-                                    >
-                                        <ArrowLeft size={20} />
-                                    </button>
+                                <div className="flex-grow">
+                                    <h3 className="text-xl font-black text-[var(--text-primary)] font-['Playfair+Display'] tracking-tight mb-2 uppercase group-hover:text-[var(--accent-green)] transition-colors">
+                                        {report.location}
+                                    </h3>
                                     
-                                    <div className="flex items-center bg-white border-2 border-slate-100 rounded-2xl p-1 shadow-sm">
-                                        {[...Array(totalPages)].map((_, i) => {
-                                            const p = i + 1;
-                                            if (totalPages > 5 && (p < page - 1 || p > page + 1) && p !== 1 && p !== totalPages) {
-                                                if (p === 2 || p === totalPages - 1) return <span key={p} className="px-2 text-slate-300">...</span>;
-                                                return null;
-                                            }
-                                            return (
-                                                <button
-                                                    key={p}
-                                                    onClick={() => setPage(p)}
-                                                    className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${
-                                                        page === p 
-                                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' 
-                                                        : 'text-slate-500 hover:bg-slate-50'
-                                                    }`}
-                                                >
-                                                    {p}
-                                                </button>
-                                            );
-                                        })}
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                        <div className={getWasteBadgeClass(report.garbageType)}>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                            {report.garbageType}
+                                        </div>
+                                        <div className="nature-badge nature-badge-general">
+                                            <LayoutGrid size={10} />
+                                            Zone {report.zone}
+                                        </div>
                                     </div>
 
-                                    <button
-                                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                        disabled={page === totalPages}
-                                        className={`p-3 rounded-xl border-2 transition-all ${
-                                            page === totalPages 
-                                            ? 'bg-slate-50 border-slate-50 text-slate-300 cursor-not-allowed' 
-                                            : 'bg-white border-slate-100 text-slate-600 hover:border-emerald-200 hover:text-emerald-600 shadow-sm'
-                                        }`}
-                                    >
-                                        <div className="rotate-180">
-                                            <ArrowLeft size={20} />
-                                        </div>
-                                    </button>
+                                    <p className="text-[var(--text-muted)] text-sm line-clamp-2 italic mb-6">
+                                        &quot;{report.description || 'No description provided.'}&quot;
+                                    </p>
+                                </div>
+
+                                <div className="pt-6 border-t border-[var(--border-color)] flex items-center justify-between mt-auto">
+                                    <div className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest italic">
+                                        {new Date(report.createdAt).toLocaleDateString()}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {report.status === 'Pending' && (
+                                            <>
+                                                <button 
+                                                    onClick={() => navigate(`/citizen/edit-report/${report._id}`)}
+                                                    className="p-3 text-[var(--text-muted)] hover:text-[var(--accent-green)] bg-[var(--bg-secondary)]/50 hover:bg-white rounded-xl transition-all border border-[var(--border-color)] hover:border-[var(--accent-green)]/30 shadow-sm"
+                                                    title="Edit Report"
+                                                >
+                                                    <Edit3 size={18} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(report._id)}
+                                                    className="p-3 text-[var(--text-muted)] hover:text-rose-500 bg-[var(--bg-secondary)]/50 hover:bg-white rounded-xl transition-all border border-[var(--border-color)] hover:border-rose-500/30 shadow-sm"
+                                                    title="Delete Report"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </>
+                                        )}
+                                        {report.status !== 'Pending' && (
+                                            <div className="px-4 py-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60">
+                                                Locked
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="text-center py-20 glass-card bg-white/50 rounded-[3rem] border border-dashed border-slate-200">
-                        <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                            <Trash2 size={40} className="text-slate-300" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-800 tracking-tight">No reports found</h3>
-                        <p className="text-slate-500 mt-2 font-medium">Reports with the status "{filter}" will appear here.</p>
-                        <button 
-                            onClick={() => navigate('/citizen/report')}
-                            className="mt-8 px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:scale-105 transition-transform"
-                        >
-                            + Submit New Report
-                        </button>
+                        ))}
                     </div>
-                )}
-            </div>
+
+                    {/* Pagination */}
+                    <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 px-4">
+                        <span className="text-[var(--text-muted)] font-black text-[10px] tracking-[0.2em] uppercase">Page {page} of {totalPages}</span>
+                        <div className="flex gap-4">
+                            <button 
+                                disabled={page === 1}
+                                onClick={() => setPage(p => p - 1)}
+                                className="px-8 py-3 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl font-black text-[var(--text-muted)] hover:text-[var(--accent-green)] hover:border-[var(--accent-green)]/40 disabled:opacity-20 transition-all text-[10px] uppercase tracking-widest active:scale-95 shadow-md"
+                            >
+                                Previous
+                            </button>
+                            <button 
+                                disabled={page === totalPages}
+                                onClick={() => setPage(p => p + 1)}
+                                className="eco-button py-3 text-[10px] tracking-widest uppercase disabled:opacity-20"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <div className="text-center py-32 leaf-card border-dashed group">
+                    <Activity size={64} className="text-[var(--text-muted)] mx-auto mb-8 opacity-40 group-hover:scale-110 group-hover:text-[var(--accent-green)] transition-all duration-700" />
+                    <p className="text-[var(--text-primary)] font-black text-xl uppercase tracking-tighter">No reports found.</p>
+                    <p className="text-[var(--text-muted)] font-bold uppercase tracking-widest text-xs mt-3 italic">Submit a new report to see it here.</p>
+                    <button 
+                        onClick={() => navigate('/citizen/report')}
+                        className="mt-8 eco-button"
+                    >
+                        New Report
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

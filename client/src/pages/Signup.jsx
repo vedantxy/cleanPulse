@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Lock, Phone, MapPin, ArrowRight, UserPlus } from 'lucide-react';
+import { User, Mail, Lock, Phone, MapPin, ArrowRight, Leaf } from 'lucide-react';
 
 const Signup = () => {
     const [formData, setFormData] = useState({
@@ -25,175 +25,182 @@ const Signup = () => {
         setIsLoading(true);
         try {
             await signup(formData);
-            navigate(`/${formData.role}/dashboard`);
+            navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.message || 'Verification failed. Please try again.');
+            console.error('Signup Error:', err);
+            let message = 'Signup failed. Please check your connection.';
+            if (err.code === 'auth/email-already-in-use') message = 'This email is already registered.';
+            else if (err.code === 'auth/weak-password') message = 'Password is too weak. Use at least 6 characters.';
+            else if (err.code === 'auth/invalid-email') message = 'Invalid email format.';
+            else if (err.code === 'auth/operation-not-allowed') message = 'Email/Password auth is not enabled in Firebase. Please contact support.';
+            else if (err.response?.data?.message) message = err.response.data.message;
+            setError(message);
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-            {/* Background Decorations */}
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-200/20 rounded-full blur-[100px] -z-10 translate-x-1/2 -translate-y-1/2" />
-            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-200/20 rounded-full blur-[100px] -z-10 -translate-x-1/2 translate-y-1/2" />
+        <div className="min-h-screen flex items-center justify-center py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden text-[var(--text-primary)]">
+            <div className="max-w-2xl w-full animate-slide-up relative z-10">
+                <div className="leaf-card relative overflow-hidden shadow-2xl">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-[var(--accent-green)]/30" />
 
-            <div className="max-w-2xl w-full animate-fade-in">
-                <div className="glass-card p-10 md:p-12 rounded-[2.5rem] shadow-2xl overflow-hidden relative">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-500 to-teal-500" />
-
-                    <div className="flex flex-col md:flex-row items-center justify-between mb-10 pb-8 border-b border-slate-100">
-                        <div className="text-center md:text-left mb-6 md:mb-0">
-                            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Create Account</h2>
-                            <p className="mt-2 text-slate-500 font-medium italic">"Every report counts towards a greener city"</p>
+                    <div className="flex flex-col md:flex-row items-center justify-between mb-12 pb-10 border-b border-[var(--border-color)]">
+                        <div className="text-center md:text-left mb-8 md:mb-0">
+                            <h2 className="text-4xl font-black tracking-tighter font-['Playfair+Display'] uppercase text-[var(--text-primary)]">Sign Up</h2>
+                            <p className="mt-2 text-[var(--text-muted)] font-black uppercase tracking-[0.2em] text-[10px] italic">Join our network for a cleaner environment</p>
                         </div>
-                        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shadow-inner">
-                            <UserPlus size={32} />
+                        <div className="w-20 h-20 bg-[var(--accent-green)]/10 text-[var(--accent-green)] rounded-3xl flex items-center justify-center border border-[var(--accent-green)]/20">
+                            <Leaf size={40} />
                         </div>
                     </div>
 
-                    <form className="space-y-8" onSubmit={onSubmit}>
+                    <form className="space-y-10" onSubmit={onSubmit}>
                         {error && (
-                            <div className="bg-red-50 text-red-500 p-4 rounded-xl text-sm border border-red-100 text-center animate-pulse">
+                            <div className="bg-rose-500/10 text-rose-600 dark:text-rose-400 p-5 rounded-2xl text-xs font-bold border border-rose-500/20 text-center animate-shake uppercase tracking-widest">
                                 {error}
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                            <div className="space-y-2 group">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Full Name</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                            <div className="space-y-3 group">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Full Name</label>
                                 <div className="relative">
-                                    <User className="absolute top-3.5 left-4 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                    <User className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
                                     <input
                                         name="name"
                                         type="text"
                                         required
-                                        className="input-field pl-12"
-                                        placeholder="Rahul Sharma"
+                                        autoComplete="name"
+                                        className="earth-input pl-14 font-bold tracking-widest text-[11px]"
+                                        placeholder="Your Full Name"
                                         value={formData.name}
                                         onChange={onChange}
                                     />
                                 </div>
                             </div>
 
-                            <div className="space-y-2 group">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Email Address</label>
+                            <div className="space-y-3 group">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Email Address</label>
                                 <div className="relative">
-                                    <Mail className="absolute top-3.5 left-4 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                    <Mail className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
                                     <input
                                         name="email"
                                         type="email"
                                         required
-                                        className="input-field pl-12"
-                                        placeholder="rahul@example.com"
+                                        autoComplete="username"
+                                        className="earth-input pl-14 font-bold tracking-widest text-[11px]"
+                                        placeholder="your@email.com"
                                         value={formData.email}
                                         onChange={onChange}
                                     />
                                 </div>
                             </div>
 
-                            <div className="space-y-2 group">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Password</label>
+                            <div className="space-y-3 group">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Password</label>
                                 <div className="relative">
-                                    <Lock className="absolute top-3.5 left-4 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                    <Lock className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
                                     <input
                                         name="password"
                                         type="password"
                                         required
                                         minLength="8"
-                                        className="input-field pl-12"
-                                        placeholder="Min 8 characters"
+                                        autoComplete="new-password"
+                                        className="earth-input pl-14 font-bold tracking-widest text-[11px]"
+                                        placeholder="8+ characters"
                                         value={formData.password}
                                         onChange={onChange}
                                     />
                                 </div>
                             </div>
 
-                            <div className="space-y-2 group">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Phone Number</label>
+                            <div className="space-y-3 group">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Phone Number</label>
                                 <div className="relative">
-                                    <Phone className="absolute top-3.5 left-4 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                    <Phone className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
                                     <input
                                         name="phone"
                                         type="text"
                                         required
-                                        className="input-field pl-12"
-                                        placeholder="+91 98765 43210"
+                                        autoComplete="tel"
+                                        className="earth-input pl-14 font-bold tracking-widest text-[11px]"
+                                        placeholder="+91 XXXXX XXXXX"
                                         value={formData.phone}
                                         onChange={onChange}
                                     />
                                 </div>
                             </div>
 
-                            <div className="space-y-2 group">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Select Your Zone</label>
+                            <div className="space-y-3 group">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Zone Selection</label>
                                 <div className="relative">
-                                    <MapPin className="absolute top-3.5 left-4 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                    <MapPin className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
                                     <select
                                         name="zone"
                                         required
-                                        className="input-field pl-12 appearance-none"
+                                        className="earth-input pl-14 appearance-none font-bold uppercase tracking-widest text-[10px]"
                                         value={formData.zone}
                                         onChange={onChange}
                                     >
-                                        <option value="">Choose your residential area...</option>
-                                        <option value="North">North Zone</option>
-                                        <option value="South">South Zone</option>
-                                        <option value="East">East Zone</option>
-                                        <option value="West">West Zone</option>
-                                        <option value="Central">Central Zone</option>
+                                        <option value="">SELECT ZONE...</option>
+                                        <option value="Alpha">ALPHA REGION</option>
+                                        <option value="Beta">BETA REGION</option>
+                                        <option value="Gamma">GAMMA REGION</option>
+                                        <option value="Delta">DELTA REGION</option>
+                                        <option value="Epsilon">EPSILON REGION</option>
                                     </select>
-                                    <div className="absolute right-4 top-4 pointer-events-none text-slate-400">
-                                        <ArrowRight size={16} className="rotate-90" />
+                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
+                                        <ArrowRight size={14} className="rotate-90" />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-2 group">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Register As</label>
+                            <div className="space-y-3 group">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Account Role</label>
                                 <div className="relative">
-                                    <User className="absolute top-3.5 left-4 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                    <User className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
                                     <select
                                         name="role"
                                         required
-                                        className="input-field pl-12 appearance-none"
+                                        className="earth-input pl-14 appearance-none font-bold uppercase tracking-widest text-[10px]"
                                         value={formData.role}
                                         onChange={onChange}
                                     >
-                                        <option value="citizen">Citizen</option>
-                                        <option value="collector">Collector</option>
-                                        <option value="admin">Admin</option>
+                                        <option value="citizen">CITIZEN</option>
+                                        <option value="collector">COLLECTOR</option>
+                                        <option value="admin">ADMIN</option>
                                     </select>
-                                    <div className="absolute right-4 top-4 pointer-events-none text-slate-400">
-                                        <ArrowRight size={16} className="rotate-90" />
+                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
+                                        <ArrowRight size={14} className="rotate-90" />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-4">
+                        <div className="pt-8">
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="btn-primary w-full flex items-center justify-center space-x-3 group"
+                                className="eco-button w-full flex items-center justify-center gap-4 py-6"
                             >
                                 {isLoading ? (
-                                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <span>Create Free Account</span>
-                                        <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                        <span className="text-xs tracking-[0.3em] font-black uppercase">Create Account</span>
+                                        <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-500" />
                                     </>
                                 )}
                             </button>
                         </div>
 
-                        <div className="text-center">
-                            <p className="text-slate-600 font-medium">
-                                Already helping us? {' '}
-                                <Link to="/login" className="text-emerald-600 hover:text-emerald-700 font-bold underline decoration-2 underline-offset-4 decoration-emerald-100 hover:decoration-emerald-500 transition-all">
-                                    Log in to your account
+                        <div className="text-center pt-8 border-t border-[var(--border-color)]">
+                            <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.2em]">
+                                Already have an account? {' '}
+                                <Link to="/login" className="text-[var(--accent-green)] font-black underline decoration-2 underline-offset-8 decoration-[var(--accent-green)]/20 hover:decoration-[var(--accent-green)] transition-all">
+                                    LOGIN HERE
                                 </Link>
                             </p>
                         </div>

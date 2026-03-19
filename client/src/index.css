@@ -1,49 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --bg-main: #f8fafc; /* slate-50 */
-    --text-main: #0f172a; /* slate-900 */
-    --card-bg: rgba(255, 255, 255, 0.8);
-    --border-color: rgba(0, 0, 0, 0.1);
+    /* Fresh Forest Morning (Light Mode) */
+    --bg-primary: #F0F7EE;
+    --bg-secondary: #E8F5E0;
+    --bg-card: #FFFFFF;
+    --accent-green: #2D6A4F;
+    --accent-leaf: #52B788;
+    --accent-earth: #8B5E3C;
+    --text-primary: #1B3A2D;
+    --text-muted: #4A7C59;
+    --border-color: rgba(45, 106, 79, 0.1);
+    --transition-speed: 0.4s;
+    
+    /* Legacy Mappings for existing logic fallback */
+    --text-main: var(--text-primary);
+    --bg-main: var(--bg-primary);
+    --card-bg: var(--bg-card);
   }
 
   .dark {
-    --bg-main: #020617; /* Very dark blue */
-    --text-main: #f1f5f9; /* slate-100 */
-    --card-bg: rgba(15, 23, 42, 0.8); /* slate-900/80 */
-    --border-color: rgba(255, 255, 255, 0.1);
+    /* Deep Jungle Night (Dark Mode) */
+    --bg-primary: #0A1A0F;
+    --bg-secondary: #0F2318;
+    --bg-card: rgba(82, 183, 136, 0.06);
+    --accent-green: #52B788;
+    --accent-leaf: #74C69D;
+    --accent-glow: rgba(82, 183, 136, 0.35);
+    --text-primary: #D8F3DC;
+    --text-muted: #95D5B2;
+    --border-color: rgba(82, 183, 136, 0.15);
   }
 
   body {
-    @apply bg-[var(--bg-main)] text-[var(--text-main)] antialiased transition-colors duration-300;
+    @apply bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased transition-colors duration-[var(--transition-speed)];
+    font-family: 'DM Sans', sans-serif;
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', serif;
+  }
+
+  * {
+    @apply transition-colors duration-[var(--transition-speed)];
   }
 }
 
 @layer components {
-  .glass-card {
-    @apply bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border-color)] shadow-xl;
-  }
-  
-  .btn-primary {
-    @apply bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-emerald-200 dark:hover:shadow-emerald-900/40;
+  .leaf-card {
+    backdrop-filter: blur(12px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    @apply p-8 rounded-[2.5rem] shadow-xl transition-all duration-[var(--transition-speed)];
   }
 
-  .input-field {
-    @apply w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all duration-200 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm text-[var(--text-main)];
+  .leaf-card:hover {
+    @apply -translate-y-2 shadow-2xl;
+    border-color: var(--accent-leaf);
+  }
+
+  .eco-button {
+    @apply px-8 py-4 bg-gradient-to-r from-[var(--accent-green)] to-[var(--accent-leaf)] text-white font-bold rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 shadow-lg;
+  }
+
+  .eco-button:hover {
+    @apply -translate-y-0.5 scale-[1.02];
+    box-shadow: 0 10px 20px rgba(45, 106, 79, 0.2);
+  }
+
+  .eco-button:active {
+    @apply scale-95;
+  }
+
+  .nature-badge {
+    @apply px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2;
+  }
+
+  .nature-badge-recyclable {
+    @apply bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+  }
+
+  .nature-badge-compostable {
+    @apply bg-[#8B5E3C]/10 text-[#8B5E3C] dark:text-[#A67C52] border border-[#8B5E3C]/20;
+  }
+
+  .nature-badge-hazardous {
+    @apply bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20;
+    animation: eco-pulse 2s infinite;
+  }
+
+  .nature-badge-ewaste {
+    @apply bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20;
+  }
+
+  .nature-badge-general {
+    @apply bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20;
+  }
+
+  .earth-input {
+    @apply w-full px-6 py-4 rounded-2xl bg-white/50 dark:bg-black/20 border border-[var(--border-color)] outline-none transition-all duration-300 text-[var(--text-primary)] font-medium;
+  }
+
+  .earth-input:focus {
+    @apply border-[var(--accent-leaf)] ring-4 ring-[var(--accent-leaf)] ring-opacity-10;
+  }
+
+  .earth-input::placeholder {
+    @apply text-[var(--text-muted)] italic opacity-60;
+  }
+
+  /* Stat Cards */
+  .stat-card-nature {
+    @apply leaf-card relative overflow-hidden;
+  }
+
+  .stat-card-nature .accent-line {
+    @apply absolute bottom-0 left-0 w-full h-1.5;
+  }
+
+  /* Backgrounds */
+  .nature-bg-overlay {
+    @apply fixed inset-0 pointer-events-none z-[-1];
+  }
+
+  .leaf-pattern {
+    @apply absolute inset-0 opacity-[0.04];
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5c-5 10-15 15-25 15 10 5 15 15 15 25 5-10 15-15 25-15-10-5-15-15-15-25z' fill='%232D6A4F' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+    animation: leaf-fall 20s linear infinite;
+  }
+
+  .hero-breath {
+    @apply absolute inset-0 opacity-20;
+    background: radial-gradient(circle at center, var(--accent-leaf), transparent 70%);
+    animation: breathing 6s ease-in-out infinite;
   }
 }
 
-.bg-gradient-animate {
-  background: linear-gradient(-45deg, #10b981, #34d399, #059669, #10b981);
-  background-size: 400% 400%;
-  animation: gradient 15s ease infinite;
+@keyframes leaf-fall {
+    0% { background-position: 0 0; }
+    100% { background-position: 60px 60px; }
 }
 
-@keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes breathing {
+    0%, 100% { transform: scale(1); opacity: 0.1; }
+    50% { transform: scale(1.1); opacity: 0.3; }
 }
+
+@keyframes eco-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(82, 183, 136, 0.2); }
+    50% { box-shadow: 0 0 25px rgba(82, 183, 136, 0.5); }
+}
+
+@keyframes firefly {
+    0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+    33% { transform: translate(30px, -50px); opacity: 0.8; }
+    66% { transform: translate(-20px, 20px); opacity: 0.5; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes countUp {
+    from { filter: blur(5px); opacity: 0; }
+    to { filter: blur(0); opacity: 1; }
+}
+
+.animate-slide-up {
+    animation: slideUp 0.6s ease-out forwards;
+}
+
+.animate-count {
+    animation: countUp 0.8s ease-out forwards;
+}
+@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } .fade-slide-up { animation: fadeSlideUp 0.4s ease forwards; } @keyframes spin { to { transform: rotate(360deg); } } .spin { display: inline-block; animation: spin 0.8s linear infinite; }

@@ -8,7 +8,7 @@ const auth = require('../middleware/auth');
 // @access  Private (Citizen)
 router.post('/', auth, async (req, res) => {
     try {
-        const { garbageType, location, landmark, zone, description, photo, urgency } = req.body;
+        const { garbageType, location, landmark, zone, description, photo, urgency, latitude, longitude } = req.body;
 
         const newReport = new Report({
             citizenId: req.user.id,
@@ -19,18 +19,26 @@ router.post('/', auth, async (req, res) => {
             description,
             photo,
             urgency,
+            latitude,
+            longitude,
             status: 'Pending'
         });
 
         const report = await newReport.save();
         
-        // Award points for reporting (+10)
-        const User = require('../models/User');
-        await User.findByIdAndUpdate(req.user.id, { $inc: { rewardPoints: 10 } });
-        
-        // Check for badges
-        const { checkAndAwardBadges } = require('../utils/badgeHandler');
-        await checkAndAwardBadges(req.user.id);
+        // Gamification & Badges should be non-blocking
+        try {
+            // Award credits for reporting (+10)
+            const { awardCredits } = require('../utils/gamification');
+            await awardCredits(req.user.id, 10);
+            
+            // Check for badges
+            const { checkAndAwardBadges } = require('../utils/badgeHandler');
+            await checkAndAwardBadges(req.user.id);
+        } catch (gamifyErr) {
+            console.error('Non-blocking gamification error:', gamifyErr.message);
+            // We don't fail the request if gamification fails
+        }
         
         res.json(report);
     } catch (err) {
@@ -133,7 +141,7 @@ router.put('/:id', auth, async (req, res) => {
             return res.status(400).json({ message: 'Only pending reports can be edited' });
         }
 
-        const { garbageType, location, landmark, zone, description, photo, urgency } = req.body;
+        const { garbageType, location, landmark, zone, description, photo, urgency, latitude, longitude } = req.body;
         
         // Update fields
         if (garbageType) report.garbageType = garbageType;
@@ -143,6 +151,8 @@ router.put('/:id', auth, async (req, res) => {
         if (description) report.description = description;
         if (photo) report.photo = photo;
         if (urgency) report.urgency = urgency;
+        if (latitude !== undefined) report.latitude = latitude;
+        if (longitude !== undefined) report.longitude = longitude;
 
         const updatedReport = await report.save();
         res.json(updatedReport);
@@ -205,10 +215,10 @@ router.put('/:id/status', auth, async (req, res) => {
         report.status = status;
         await report.save();
 
-        // If report is resolved, award points (+50) and check for badges for the citizen
+        // If report is resolved, award credits (+50) and check for badges for the citizen
         if (status === 'Resolved') {
-            const User = require('../models/User');
-            await User.findByIdAndUpdate(report.citizenId, { $inc: { rewardPoints: 50 } });
+            const { awardCredits } = require('../utils/gamification');
+            await awardCredits(report.citizenId, 50);
             
             const { checkAndAwardBadges } = require('../utils/badgeHandler');
             await checkAndAwardBadges(report.citizenId);

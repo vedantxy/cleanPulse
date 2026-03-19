@@ -21,9 +21,20 @@ router.get('/citizen', auth, async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5);
 
+        const User = require('../models/User');
+        const user = await User.findById(req.user.id).select('ecoCredits rank');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User profile not found. Please log in again.' });
+        }
+
         res.json({
             stats: { total, resolved, pending, inProgress },
-            recentReports
+            recentReports,
+            user: {
+                ecoCredits: user.ecoCredits || 0,
+                rank: user.rank || 'Seedling'
+            }
         });
     } catch (err) {
         console.error('Citizen dashboard error:', err.message);
@@ -44,6 +55,10 @@ router.get('/collector', auth, async (req, res) => {
         const User = require('../models/User');
         const user = await User.findById(req.user.id);
         
+        if (!user) {
+            return res.status(404).json({ message: 'Collector profile not found.' });
+        }
+
         if (!user.zone) {
             return res.status(400).json({ message: 'Collector has no assigned zone' });
         }

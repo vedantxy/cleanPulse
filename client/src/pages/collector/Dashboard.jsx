@@ -1,8 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Truck, CheckCircle, Clock, MapPin, Play, Check, ClipboardList, Loader2, AlertCircle } from 'lucide-react';
+import { Truck, CheckCircle, Clock, MapPin, Play, Check, ClipboardList, Loader2, AlertCircle, Sparkles, Activity, ShieldCheck, Zap } from 'lucide-react';
+
+const CountUp = ({ end, duration = 2000 }) => {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            setCount(Math.floor(progress * end));
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }, [end, duration]);
+
+    return <span>{count}</span>;
+};
 
 const CollectorDashboard = () => {
     const { user } = useAuth();
@@ -13,14 +32,11 @@ const CollectorDashboard = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get('http://localhost:5000/api/dashboard/collector', {
-                    headers: { 'x-auth-token': token }
-                });
+                const res = await axios.get('/api/dashboard/collector');
                 setData(res.data);
             } catch (err) {
-                setError('Failed to fetch pickup data. Please try again.');
-                console.error(err);
+                const msg = err.response?.data?.message || err.message || 'Failed to connect to the system. Please try again.';
+                setError(msg);
             } finally {
                 setLoading(false);
             }
@@ -31,25 +47,21 @@ const CollectorDashboard = () => {
 
     const handleUpdateStatus = async (id, status) => {
         try {
-            const token = localStorage.getItem('token');
-            // Optimistic update could be added here
-            await axios.put(`http://localhost:5000/api/reports/${id}/status`, { status }, {
-                headers: { 'x-auth-token': token }
-            });
-            // Refetch data
-            const res = await axios.get('http://localhost:5000/api/dashboard/collector', {
-                headers: { 'x-auth-token': token }
-            });
+            await axios.put(`/api/reports/${id}/status`, { status });
+            const res = await axios.get('/api/dashboard/collector');
             setData(res.data);
-        } catch (err) {
-            console.error('Failed to update status:', err);
+        } catch {
+            // Silently handle
         }
     };
 
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
+                <div className="relative">
+                    <Loader2 className="w-16 h-16 text-[var(--accent-green)] animate-spin" />
+                    <div className="absolute inset-0 bg-[var(--accent-green)]/20 blur-xl animate-pulse" />
+                </div>
             </div>
         );
     }
@@ -57,112 +69,160 @@ const CollectorDashboard = () => {
     const { stats, pickups } = data || { stats: { assigned: 0, completed: 0, pending: 0 }, pickups: [] };
 
     return (
-        <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto animate-fade-in">
-            {/* Header Section */}
-            <div className="mb-8 flex items-center space-x-3">
-                <Truck className="text-emerald-600 w-8 h-8" />
-                <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
-                    Collector Dashboard
-                </h1>
+        <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto animate-slide-up text-[var(--text-primary)]">
+            {/* Collector Nature Header */}
+            <div className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center space-x-5">
+                    <div className="w-16 h-16 bg-gradient-to-tr from-[var(--accent-green)] to-[var(--accent-leaf)] rounded-[2rem] flex items-center justify-center text-white shadow-xl border-4 border-white/20 font-['Playfair+Display'] text-2xl font-black">
+                        <Truck size={32} />
+                    </div>
+                    <div>
+                        <h1 className="text-4xl font-black tracking-tighter font-['Playfair+Display'] uppercase">
+                            Collector <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-green)] to-[var(--accent-leaf)]">Dashboard</span>
+                        </h1>
+                        <p className="text-[var(--text-muted)] font-black uppercase tracking-widest text-[10px] mt-1 flex items-center gap-2">
+                             ID: {user?.name?.toUpperCase() || 'COLLECTOR'} <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-green)] animate-pulse" /> Status: Online
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <Link to="/collector/profile" className="px-8 py-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-muted)] rounded-2xl font-black hover:text-[var(--text-primary)] transition-all shadow-sm active:scale-95 text-[10px] tracking-widest uppercase flex items-center gap-3">
+                        <ShieldCheck size={18} className="text-[var(--accent-green)]" />
+                        VIEW PROFILE
+                    </Link>
+                </div>
             </div>
 
             {error && (
-                <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center space-x-3 text-rose-600">
-                    <AlertCircle size={20} />
-                    <p className="font-bold">{error}</p>
+                <div className="mb-8 p-6 bg-rose-500/10 border border-rose-500/20 rounded-3xl flex items-center space-x-4 text-rose-500 animate-shake">
+                    <AlertCircle size={24} />
+                    <p className="font-black uppercase tracking-widest text-xs italic">{error}</p>
                 </div>
             )}
 
-            {/* Main Content Card (Matching the Image Box) */}
-            <div className="glass-card p-10 rounded-[2.5rem] shadow-xl border border-white/40 bg-white/70 backdrop-blur-md">
+            {/* Main Operational Hub */}
+            <div className="leaf-card p-10 md:p-14 rounded-[3.5rem] relative overflow-hidden border-2 border-[var(--bg-card)]">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--accent-green)]/5 rounded-full blur-[100px]" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[var(--accent-earth)]/5 rounded-full blur-[100px]" />
                 
-                {/* Greeting */}
-                <div className="flex items-center space-x-4 mb-10">
-                    <span className="text-3xl animate-bounce">👋</span>
-                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                        Hello, {user?.name || 'Suresh'} (Collector)
-                    </h2>
+                {/* Greeting Operative */}
+                <div className="flex items-center space-x-5 mb-12">
+                    <div className="relative">
+                        <div className="w-14 h-14 bg-[var(--bg-secondary)] rounded-2xl flex items-center justify-center border border-[var(--border-color)] text-[var(--accent-green)] group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                            <Activity size={28} />
+                        </div>
+                        <div className="absolute -top-1 -right-1">
+                            <Zap size={14} className="text-[var(--accent-green)] fill-[var(--accent-green)] animate-pulse" />
+                        </div>
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-black text-[var(--text-primary)] font-['Playfair+Display'] tracking-tighter uppercase">
+                            Hello, {user?.name || 'Collector'}
+                        </h2>
+                        <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.2em] mt-1 italic">Ready for today&apos;s tasks</p>
+                    </div>
                 </div>
 
-                {/* Today's Pickups Stats */}
-                <div className="mb-12">
-                    <h3 className="text-xl font-bold text-slate-800 mb-6 tracking-tight">Today's Pickups</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12">
-                        <Link to="/collector/pickups?status=Pending" className="flex items-center space-x-4 p-4 hover:bg-slate-50 rounded-2xl transition-all group">
-                            <div className="p-3 bg-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-slate-200 transition-colors">
-                                <ClipboardList className="text-slate-500 w-6 h-6" />
+                {/* Tactical Pickup Stats */}
+                <div className="mb-16">
+                    <h3 className="text-[10px] font-black text-[var(--accent-leaf)] uppercase tracking-[0.3em] mb-8 ml-1">Daily Pickup Overview</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <Link to="/collector/pickups?status=Pending" className="leaf-card p-6 flex items-center gap-5 hover:translate-y-[-5px] transition-all bg-[var(--bg-secondary)] border-[var(--border-color)] group">
+                            <div className="p-4 bg-[var(--accent-green)]/10 rounded-2xl flex items-center justify-center text-[var(--accent-green)] group-hover:bg-[var(--accent-green)] group-hover:text-white transition-all shadow-lg border border-[var(--accent-green)]/20">
+                                <ClipboardList size={24} />
                             </div>
-                            <span className="text-lg font-bold text-slate-700">Pending in Zone: <span className="text-2xl text-slate-900 ml-2">{stats.pending}</span></span>
+                            <div>
+                                <span className="text-[var(--text-muted)] text-[9px] font-black uppercase tracking-widest block mb-1">New Tasks</span>
+                                <span className="text-2xl font-black text-[var(--text-primary)] font-['Playfair+Display']"><CountUp end={stats.pending} /> ACTIVE</span>
+                            </div>
                         </Link>
-                        <Link to="/collector/pickups?status=Resolved" className="flex items-center space-x-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all group">
-                            <div className="p-3 bg-emerald-100 rounded-2xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                                <CheckCircle className="text-emerald-600 w-6 h-6" />
+                        
+                        <Link to="/collector/pickups?status=Resolved" className="leaf-card p-6 flex items-center gap-5 hover:translate-y-[-5px] transition-all bg-[var(--bg-secondary)] border-[var(--border-color)] group">
+                            <div className="p-4 bg-[var(--accent-leaf)]/10 rounded-2xl flex items-center justify-center text-[var(--accent-leaf)] group-hover:bg-[var(--accent-leaf)] group-hover:text-white transition-all shadow-lg border border-[var(--accent-leaf)]/20">
+                                <CheckCircle size={24} />
                             </div>
-                            <span className="text-lg font-bold text-slate-700">My Completed: <span className="text-2xl text-emerald-600 ml-2">{stats.completed}</span></span>
+                            <div>
+                                <span className="text-[var(--text-muted)] text-[9px] font-black uppercase tracking-widest block mb-1">Completed</span>
+                                <span className="text-2xl font-black text-[var(--accent-leaf)] font-['Playfair+Display']"><CountUp end={stats.completed} /> DONE</span>
+                            </div>
                         </Link>
-                        <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-amber-100 rounded-2xl flex items-center justify-center">
-                                <Clock className="text-amber-600 w-6 h-6" />
+
+                        <div className="leaf-card p-6 flex items-center gap-5 bg-[var(--bg-secondary)] border-[var(--border-color)] group">
+                            <div className="p-4 bg-[var(--accent-earth)]/10 rounded-2xl flex items-center justify-center text-[var(--accent-earth)] transition-all shadow-lg border border-[var(--accent-earth)]/20">
+                                <Clock size={24} />
                             </div>
-                            <span className="text-lg font-bold text-slate-700">Pending: <span className="text-2xl text-amber-600 ml-2">{stats.pending}</span></span>
+                            <div>
+                                <span className="text-[var(--text-muted)] text-[9px] font-black uppercase tracking-widest block mb-1">Status</span>
+                                <span className="text-2xl font-black text-[var(--accent-earth)] font-['Playfair+Display']"><CountUp end={stats.pending} /> PENDING</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Assigned Pickup List */}
-                <div>
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-slate-800 tracking-tight">Assigned Pickup List</h3>
+                {/* Mission Deployment List */}
+                <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-8 border-b border-[var(--border-color)] pb-6">
+                        <h3 className="text-2xl font-black font-['Playfair+Display'] tracking-tighter uppercase flex items-center gap-4">
+                            <Sparkles size={24} className="text-[var(--accent-leaf)]" />
+                            Active Pickups
+                        </h3>
                         <Link 
                             to="/collector/pickups"
-                            className="text-emerald-600 font-bold hover:underline flex items-center gap-1 group/all"
+                            className="text-[10px] font-black tracking-widest text-[var(--accent-green)] hover:text-[var(--accent-leaf)] uppercase flex items-center gap-2 group/all transition-colors"
                         >
-                            Manage All <Truck size={16} className="group-hover/all:translate-x-1 transition-transform" />
+                            VIEW ALL <Truck size={14} className="group-hover/all:translate-x-2 transition-transform duration-700" />
                         </Link>
                     </div>
-                    <div className="space-y-4">
+                    
+                    <div className="space-y-5">
                         {pickups.length > 0 ? (
                             pickups.map((pickup) => (
-                                <div key={pickup._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-slate-50/80 rounded-3xl border border-slate-100 hover:border-emerald-200 hover:bg-white transition-all group">
-                                    <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-                                        <MapPin size={24} className="text-rose-500" />
+                                <div key={pickup._id} className="flex flex-col lg:flex-row lg:items-center justify-between p-8 bg-[var(--bg-secondary)] rounded-[2.5rem] border border-[var(--border-color)] hover:border-[var(--accent-green)]/30 transition-all group gap-6">
+                                    <div className="flex items-center space-x-6">
+                                        <div className="w-14 h-14 bg-[var(--bg-card)] rounded-[1.5rem] flex items-center justify-center border border-[var(--border-color)] group-hover:bg-[var(--accent-green)]/10 transition-colors">
+                                            <MapPin size={28} className="text-rose-500 animate-pulse" />
+                                        </div>
                                         <div>
-                                            <span className="font-bold text-slate-800 tracking-tight text-xl block">{pickup.location}</span>
-                                            <span className="text-slate-400 text-xs font-semibold">{pickup.garbageType} • {pickup.urgency} Priority</span>
+                                            <span className="font-black text-[var(--text-primary)] tracking-widest text-lg block font-['Playfair+Display'] uppercase truncate max-w-xs">{pickup.location}</span>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <span className="text-[var(--accent-green)]/70 text-[10px] font-black uppercase tracking-widest">{pickup.garbageType}</span>
+                                                <span className="w-1 h-1 bg-[var(--border-color)] rounded-full" />
+                                                <span className={`text-[9px] font-black uppercase tracking-widest ${pickup.urgency === 'High' ? 'text-rose-500' : pickup.urgency === 'Medium' ? 'text-amber-500' : 'text-[var(--accent-leaf)]'}`}>{pickup.urgency} PRIORITY</span>
+                                            </div>
                                         </div>
                                     </div>
+                                    
                                     <button 
                                         onClick={() => {
                                             if (pickup.status === 'Pending') handleUpdateStatus(pickup._id, 'In Progress');
                                             else if (pickup.status === 'In Progress') handleUpdateStatus(pickup._id, 'Resolved');
                                         }}
                                         disabled={pickup.status === 'Resolved'}
-                                        className={`flex items-center space-x-2 px-8 py-3 rounded-2xl font-black tracking-tight transform hover:scale-105 active:scale-95 transition-all shadow-md ${
+                                        className={`flex items-center justify-center gap-3 px-10 py-5 rounded-2xl font-black text-[10px] tracking-[0.2em] transform active:scale-95 transition-all uppercase whitespace-nowrap ${
                                             pickup.status === 'Resolved' 
-                                            ? 'bg-white text-slate-400 border-2 border-slate-100 cursor-not-allowed' 
+                                            ? 'bg-[var(--accent-leaf)]/20 text-[var(--accent-leaf)] border border-[var(--accent-leaf)]/20 cursor-not-allowed' 
                                             : pickup.status === 'In Progress'
-                                                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                                : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                                ? 'bg-[var(--accent-green)] text-white shadow-xl hover:scale-105'
+                                                : 'eco-button text-white shadow-xl'
                                         }`}
                                     >
-                                        {pickup.status === 'Pending' && <><Play size={18} className="mr-2" /> <span>[ Accept Pickup ]</span></>}
-                                        {pickup.status === 'In Progress' && <><Check size={18} className="mr-2" /> <span>[ Mark Complete ]</span></>}
-                                        {pickup.status === 'Resolved' && <><CheckCircle size={18} className="mr-2" /> <span>[ Completed ]</span></>}
+                                        {pickup.status === 'Pending' && <><Play size={16} /> <span>START PICKUP</span></>}
+                                        {pickup.status === 'In Progress' && <><Check size={16} /> <span>COMPLETE</span></>}
+                                        {pickup.status === 'Resolved' && <><ShieldCheck size={16} /> <span>RESOLVED</span></>}
                                     </button>
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center py-10 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
-                                <p className="text-slate-400 font-bold">No pickups available in your zone.</p>
+                            <div className="text-center py-20 bg-[var(--bg-secondary)] rounded-[3rem] border-2 border-dashed border-[var(--border-color)] group">
+                                <Truck size={48} className="text-[var(--text-muted)] mx-auto mb-6 opacity-40 group-hover:scale-110 transition-transform duration-700" />
+                                <p className="text-[var(--text-muted)] font-black uppercase tracking-[0.2em] text-[10px] px-4 italic">No pickups assigned at the moment.</p>
                             </div>
                         )}
                     </div>
                 </div>
-
             </div>
         </div>
     );
 };
 
 export default CollectorDashboard;
-

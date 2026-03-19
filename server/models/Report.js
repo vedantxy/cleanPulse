@@ -9,11 +9,17 @@ const ReportSchema = new mongoose.Schema({
     garbageType: {
         type: String,
         required: true,
-        enum: ['Household', 'Industrial', 'Medical', 'Construction', 'Other']
+        enum: ['General', 'Recyclable', 'Compostable', 'Hazardous', 'E-Waste']
     },
     location: {
         type: String,
         required: true
+    },
+    latitude: {
+        type: Number
+    },
+    longitude: {
+        type: Number
     },
     landmark: {
         type: String

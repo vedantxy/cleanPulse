@@ -9,6 +9,12 @@
 
 ---
 
+## 🚀 Live Demo & Deployment
+- **Live Site**: [Add your live URL here after deployment]
+- **Deployment Guide**: [View Guide](README_DEPLOY.md)
+
+---
+
 ## 📌 Problem Statement
 
 > **"In most cities and towns, waste management is still handled through fixed schedules and manual reporting systems. Citizens have no proper platform to report garbage overflow, illegal dumping, or missed pickups in their area. Waste collectors operate without real-time data, leading to inefficient routes and missed locations. City administrators have no centralized dashboard to monitor waste collection performance or identify problem areas.**

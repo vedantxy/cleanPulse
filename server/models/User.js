@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
+    firebaseUid: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
     name: {
         type: String,
         required: true
@@ -35,9 +40,13 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    rewardPoints: {
+    ecoCredits: {
         type: Number,
         default: 0
+    },
+    rank: {
+        type: String,
+        default: 'Seedling'
     }
 }, { timestamps: true });
 

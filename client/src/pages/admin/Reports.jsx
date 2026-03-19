@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { 
-    FileText, 
     Search, 
     Filter, 
     Trash2, 
@@ -11,20 +10,37 @@ import {
     CheckCircle2, 
     ArrowLeft,
     Loader2,
-    X,
     ChevronDown,
-    LayoutGrid
+    LayoutGrid,
+    Sparkles,
+    Activity,
+    Map as MapIcon,
+    List
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix for default marker icon in Leaflet + React
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: markerIcon,
+    shadowUrl: markerShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const AdminReports = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     
-    // Parse status from URL query params
     const queryParams = new URLSearchParams(location.search);
     const initialStatus = queryParams.get('status') || 'All';
     
@@ -33,28 +49,16 @@ const AdminReports = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [zoneFilter, setZoneFilter] = useState('');
     
-    // Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalReports, setTotalReports] = useState(0);
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
 
-    // Sync filter state with URL changes
-    useEffect(() => {
-        const status = new URLSearchParams(location.search).get('status');
-        if (status) {
-            setStatusFilter(status);
-        }
-    }, [location.search]);
-
-    useEffect(() => {
-        fetchReports();
-    }, [statusFilter, urgencyFilter, zoneFilter, page]);
-
-    const fetchReports = async () => {
+    const fetchReports = useCallback(async () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get(`http://localhost:5000/api/reports`, {
+            const res = await axios.get(`/api/reports`, {
                 headers: { 'x-auth-token': token },
                 params: {
                     status: statusFilter,
@@ -68,217 +72,288 @@ const AdminReports = () => {
             setReports(res.data.reports);
             setTotalPages(res.data.totalPages);
             setTotalReports(res.data.totalReports);
-        } catch (err) {
-            setError('Failed to load reports. Please try again.');
-            console.error(err);
+        } catch {
+            console.error('Connection error. Could not retrieve reports.');
         } finally {
             setLoading(false);
         }
-    };
+    }, [statusFilter, urgencyFilter, zoneFilter, searchTerm, page]);
+
+    useEffect(() => {
+        const status = new URLSearchParams(location.search).get('status');
+        if (status) {
+            setStatusFilter(status);
+        }
+    }, [location.search]);
+
+    useEffect(() => {
+        fetchReports();
+    }, [fetchReports]);
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this report permanently?')) return;
+        if (!window.confirm('Delete this report permanently?')) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5000/api/reports/${id}`, {
+            await axios.delete(`/api/reports/${id}`, {
                 headers: { 'x-auth-token': token }
             });
             fetchReports();
-        } catch (err) {
-            alert('Failed to delete report.');
+        } catch {
+            alert('Delete failed.');
         }
     };
 
     return (
-        <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-fade-in">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-10">
-                <div className="flex items-center space-x-4">
+        <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-slide-up text-[var(--text-primary)]">
+            {/* Nature Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+                <div className="flex items-center space-x-6">
                     <button 
-                        onClick={() => navigate('/admin/dashboard')}
-                        className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                        onClick={() => navigate('/dashboard')}
+                        className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-sm hover:bg-[var(--accent-green)]/10 hover:border-[var(--accent-green)]/30 transition-all text-[var(--text-muted)] hover:text-[var(--accent-green)] active:scale-95"
                     >
-                        <ArrowLeft size={24} className="text-slate-600" />
+                        <ArrowLeft size={24} />
                     </button>
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                            <LayoutGrid className="text-indigo-600" size={32} />
-                            All City Reports
+                        <h1 className="text-4xl font-black text-[var(--text-primary)] tracking-tighter font-['Playfair+Display'] uppercase flex items-center gap-4">
+                            <LayoutGrid className="text-[var(--accent-green)]" size={32} />
+                            All Reports
                         </h1>
-                        <p className="text-slate-500 font-bold">Manage and monitor all garbage issues ({totalReports} total)</p>
+                        <p className="text-[var(--text-muted)] font-black uppercase tracking-[0.2em] text-[10px] mt-1 italic">
+                            Managing {totalReports} Waste Reports
+                        </p>
                     </div>
+                </div>
+                
+                <div className="px-6 py-3 bg-[var(--accent-green)]/10 border border-[var(--accent-green)]/20 rounded-2xl flex items-center space-x-3 shadow-xl">
+                     <Sparkles size={18} className="text-[var(--accent-green)] animate-pulse" />
+                     <span className="text-[var(--accent-green)] font-black text-[10px] tracking-widest uppercase">Admin Access Active</span>
                 </div>
             </div>
 
-            {/* Advanced Filters */}
-            <div className="glass-card p-8 rounded-[2.5rem] bg-white/70 backdrop-blur-md border border-white/40 shadow-xl mb-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            {/* Report Filters */}
+            <div className="leaf-card p-10 rounded-[3.5rem] bg-[var(--bg-card)] border-[var(--border-color)] shadow-xl mb-12 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--accent-green)]/5 rounded-full blur-[80px]" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+                    <div className="relative group">
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" size={20} />
                         <input 
                             type="text"
-                            placeholder="Search location..."
+                            placeholder="Search Location..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && fetchReports()}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                            className="earth-input pl-14 font-black tracking-widest text-[11px]"
                         />
                     </div>
 
-                    <div className="relative">
-                        <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <div className="relative group">
+                        <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" size={20} />
                         <select 
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl appearance-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none font-bold text-slate-700"
+                            className="earth-input pl-14 pr-10 appearance-none font-black tracking-widest text-[10px] uppercase cursor-pointer"
                         >
                             <option value="All">All Status</option>
                             <option value="Pending">Pending</option>
                             <option value="In Progress">In Progress</option>
                             <option value="Resolved">Resolved</option>
                         </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none group-focus-within:rotate-180 transition-transform" size={16} />
                     </div>
 
-                    <div className="relative">
-                        <AlertCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <div className="relative group">
+                        <AlertCircle className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" size={20} />
                         <select 
                             value={urgencyFilter}
                             onChange={(e) => setUrgencyFilter(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl appearance-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none font-bold text-slate-700"
+                            className="earth-input pl-14 pr-10 appearance-none font-black tracking-widest text-[10px] uppercase cursor-pointer"
                         >
-                            <option value="All">All Urgency</option>
-                            <option value="High">High</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Low">Low</option>
+                            <option value="All">All Priority</option>
+                            <option value="High">High Priority</option>
+                            <option value="Medium">Medium Priority</option>
+                            <option value="Low">Low Priority</option>
                         </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none group-focus-within:rotate-180 transition-transform" size={16} />
                     </div>
 
-                    <div className="relative">
-                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <div className="relative group">
+                        <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" size={20} />
                         <input 
                             type="text"
-                            placeholder="Filter by Zone..."
+                            placeholder="Zone Filter..."
                             value={zoneFilter}
                             onChange={(e) => setZoneFilter(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                            className="earth-input pl-14 font-black tracking-widest text-[11px]"
                         />
                     </div>
+                </div>
+
+                <div className="mt-8 flex justify-center gap-4">
+                    <button 
+                        onClick={() => setViewMode('list')}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'list' ? 'bg-[var(--accent-green)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                    >
+                        <List size={14} /> List View
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('map')}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'map' ? 'bg-[var(--accent-green)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                    >
+                        <MapIcon size={14} /> Map View
+                    </button>
                 </div>
             </div>
 
             {loading ? (
-                <div className="py-20 flex flex-col items-center justify-center">
-                    <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
-                    <p className="mt-4 text-slate-500 font-bold">Scanning city reports...</p>
+                <div className="py-24 flex flex-col items-center justify-center">
+                    <Loader2 className="w-16 h-16 text-[var(--accent-green)] animate-spin" />
+                    <p className="mt-6 text-[var(--accent-green)] font-black tracking-[0.3em] uppercase text-xs animate-pulse">Loading Reports...</p>
                 </div>
             ) : reports.length > 0 ? (
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-100">
-                                <th className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">Location</th>
-                                <th className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">Zone</th>
-                                <th className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">Urgency</th>
-                                <th className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                <th className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {reports.map((report) => (
-                                <tr key={report._id} className="hover:bg-slate-50/50 transition-colors group">
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-rose-500">
-                                                <MapPin size={20} />
-                                            </div>
-                                            <div>
-                                                <span className="font-extrabold text-slate-800 block">{report.location}</span>
-                                                <span className="text-slate-400 text-xs font-bold">{report.garbageType}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg font-black text-xs">{report.zone}</span>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-2 h-2 rounded-full ${
-                                                report.urgency === 'High' ? 'bg-rose-500' : report.urgency === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'
-                                            }`} />
-                                            <span className="font-bold text-slate-700">{report.urgency}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${
-                                            report.status === 'Resolved' ? 'bg-emerald-100 text-emerald-700' :
-                                            report.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-amber-100 text-amber-700'
-                                        }`}>
-                                            {report.status === 'Resolved' ? <CheckCircle2 size={14} /> : <Clock size={14} />}
-                                            {report.status}
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6 text-right flex items-center justify-end gap-3">
-                                        <select 
-                                            value={report.status}
-                                            onChange={async (e) => {
-                                                const newStatus = e.target.value;
-                                                const token = localStorage.getItem('token');
-                                                try {
-                                                    await axios.put(`http://localhost:5000/api/reports/${report._id}/status`, { status: newStatus }, {
-                                                        headers: { 'x-auth-token': token }
-                                                    });
-                                                    fetchReports();
-                                                } catch (err) {
-                                                    alert('Failed to update status');
-                                                }
-                                            }}
-                                            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-700 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
-                                        >
-                                            <option value="Pending">Pending</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Resolved">Resolved</option>
-                                            <option value="Rejected">Rejected</option>
-                                        </select>
-                                        <button 
-                                            onClick={() => handleDelete(report._id)}
-                                            className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
-                                        >
-                                            <Trash2 size={20} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="leaf-card rounded-[3.5rem] border-[var(--border-color)] shadow-xl overflow-hidden relative">
+                    {viewMode === 'list' ? (
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
+                                            <th className="px-10 py-8 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em]">Location</th>
+                                            <th className="px-10 py-8 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em]">Sector</th>
+                                            <th className="px-10 py-8 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em]">Priority</th>
+                                            <th className="px-10 py-8 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em]">Status</th>
+                                            <th className="px-10 py-8 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em] text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[var(--border-color)] text-[var(--text-primary)]">
+                                        {reports.map((report) => (
+                                            <tr key={report._id} className="hover:bg-[var(--accent-green)]/5 transition-all group">
+                                                <td className="px-10 py-8">
+                                                    <div className="flex items-center gap-5">
+                                                        <div className="w-12 h-12 bg-[var(--bg-secondary)] rounded-2xl flex items-center justify-center text-rose-500 border border-[var(--border-color)] group-hover:scale-110 transition-transform">
+                                                            <MapPin size={24} className="animate-pulse" />
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-black text-[var(--text-primary)] block text-sm tracking-tight uppercase group-hover:text-[var(--accent-green)] transition-colors">{report.location}</span>
+                                                            <span className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest mt-1 block">{report.garbageType}</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-8">
+                                                    <span className="px-4 py-2 bg-[var(--accent-green)]/10 text-[var(--accent-green)] border border-[var(--accent-green)]/20 rounded-xl font-black text-[10px] uppercase tracking-widest">Sector {report.zone}</span>
+                                                </td>
+                                                <td className="px-10 py-8">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-2.5 h-2.5 rounded-full shadow-[0_0_10px_currentColor] ${
+                                                            report.urgency === 'High' ? 'text-rose-500 bg-rose-500' : report.urgency === 'Medium' ? 'text-amber-500 bg-amber-500' : 'text-[var(--accent-leaf)] bg-[var(--accent-leaf)]'
+                                                        }`} />
+                                                        <span className="font-black text-[var(--text-muted)] text-[10px] uppercase tracking-widest">{report.urgency}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-8">
+                                                    <div className={`inline-flex items-center gap-3 px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${
+                                                        report.status === 'Resolved' ? 'bg-[var(--accent-leaf)]/10 text-[var(--accent-leaf)] border-[var(--accent-leaf)]/20' :
+                                                        report.status === 'In Progress' ? 'bg-[var(--accent-green)]/10 text-[var(--accent-green)] border-[var(--accent-green)]/20' :
+                                                        'bg-[var(--accent-earth)]/10 text-[var(--accent-earth)] border-[var(--accent-earth)]/20'
+                                                    }`}>
+                                                        {report.status === 'Resolved' ? <CheckCircle2 size={14} /> : <Clock size={14} />}
+                                                        {report.status}
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-8 text-right">
+                                                    <div className="flex items-center justify-end gap-4">
+                                                        <select 
+                                                            value={report.status}
+                                                            onChange={async (e) => {
+                                                                const newStatus = e.target.value;
+                                                                const token = localStorage.getItem('token');
+                                                                try {
+                                                                    await axios.put(`/api/reports/${report._id}/status`, { status: newStatus }, {
+                                                                        headers: { 'x-auth-token': token }
+                                                                    });
+                                                                    fetchReports();
+                                                                } catch {
+                                                                    alert('Update failed.');
+                                                                }
+                                                            }}
+                                                            className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl text-[10px] font-black text-[var(--text-muted)] focus:ring-4 focus:ring-[var(--accent-green)]/10 outline-none transition-all uppercase cursor-pointer"
+                                                        >
+                                                            <option value="Pending">Pending</option>
+                                                            <option value="In Progress">In Progress</option>
+                                                            <option value="Resolved">Resolved</option>
+                                                            <option value="Rejected">Rejected</option>
+                                                        </select>
+                                                        <button 
+                                                            onClick={() => handleDelete(report._id)}
+                                                            className="p-3 text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all border border-transparent hover:border-rose-500/20 active:scale-95"
+                                                        >
+                                                            <Trash2 size={20} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                    {/* Simple Pagination */}
-                    <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-slate-500 font-bold">Page {page} of {totalPages}</span>
-                        <div className="flex gap-2">
-                            <button 
-                                disabled={page === 1}
-                                onClick={() => setPage(p => p - 1)}
-                                className="px-6 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-600 hover:border-indigo-300 disabled:opacity-50 transition-all"
-                            >
-                                Previous
-                            </button>
-                            <button 
-                                disabled={page === totalPages}
-                                onClick={() => setPage(p => p + 1)}
-                                className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 transition-all"
-                            >
-                                Next
-                            </button>
+                            {/* Pagination */}
+                            <div className="px-10 py-8 bg-[var(--bg-secondary)] border-t border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between gap-6">
+                                <span className="text-[var(--text-muted)] font-black text-[10px] tracking-[0.2em] uppercase">Page {page} of {totalPages}</span>
+                                <div className="flex gap-4">
+                                    <button 
+                                        disabled={page === 1}
+                                        onClick={() => setPage(p => p - 1)}
+                                        className="px-8 py-3 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl font-black text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-green)]/40 disabled:opacity-20 transition-all text-[10px] uppercase tracking-widest active:scale-95"
+                                    >
+                                        Back
+                                    </button>
+                                    <button 
+                                        disabled={page === totalPages}
+                                        onClick={() => setPage(p => p + 1)}
+                                        className="px-8 py-3 eco-button text-white rounded-xl font-black shadow-xl disabled:opacity-20 transition-all text-[10px] uppercase tracking-widest active:scale-95"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="h-[600px] w-full">
+                            <MapContainer center={[20.5937, 78.9629]} zoom={5} style={{ height: '100%', width: '100%' }}>
+                                <TileLayer
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                />
+                                {reports.filter(r => r.latitude !== null && r.latitude !== undefined && r.longitude !== null && r.longitude !== undefined).map(report => (
+                                    <Marker key={report._id} position={[report.latitude, report.longitude]}>
+                                        <Popup>
+                                            <div className="p-2 space-y-2">
+                                                <h3 className="font-black uppercase text-xs text-[var(--accent-green)]">{report.garbageType} WASTE</h3>
+                                                <p className="text-[10px] font-bold uppercase">{report.location}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`w-2 h-2 rounded-full ${report.urgency === 'High' ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                                                    <span className="text-[9px] font-black uppercase">{report.urgency} PRIORITY</span>
+                                                </div>
+                                                <button 
+                                                    onClick={() => navigate(`/admin/reports/${report._id}`)}
+                                                    className="w-full py-1.5 bg-[var(--accent-green)] text-white text-[9px] font-black uppercase rounded-lg mt-2"
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                ))}
+                            </MapContainer>
                         </div>
-                    </div>
+                    )}
                 </div>
             ) : (
-                <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-300">
-                    <X size={48} className="text-slate-200 mx-auto mb-4" />
-                    <p className="text-slate-500 font-black text-xl">No reports found matching your filters.</p>
+                <div className="text-center py-32 leaf-card border-dashed border-[var(--border-color)] rounded-[4rem] group">
+                    <Activity size={64} className="text-[var(--text-muted)] mx-auto mb-8 opacity-40 group-hover:scale-110 group-hover:text-[var(--accent-green)] transition-all duration-700" />
+                    <p className="text-[var(--text-primary)] font-black text-xl uppercase tracking-tighter">No reports matched your search.</p>
+                    <p className="text-[var(--text-muted)] font-black uppercase tracking-widest text-xs mt-3">Try resetting your filters.</p>
                 </div>
             )}
         </div>

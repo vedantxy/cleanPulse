@@ -9,12 +9,18 @@ const auth = require('../middleware/auth');
 // @desc    Register a new user
 router.post('/signup', async (req, res) => {
     try {
-        const { name, email, password, phone, zone, role } = req.body;
+        const { name, email, password, phone, zone, role, firebaseUid } = req.body;
 
-        // Check if user already exists
+        // Check for required environment variables
+        if (!process.env.JWT_SECRET) {
+            console.error('JWT_SECRET is missing from environment variables');
+            return res.status(500).json({ message: 'Server configuration error: missing secret' });
+        }
+
+        // Check if user already exists by email
         let user = await User.findOne({ email });
         if (user) {
-            return res.status(400).json({ message: 'User already exists' });
+            return res.status(400).json({ message: 'User with this email already exists' });
         }
 
         user = new User({
@@ -23,7 +29,8 @@ router.post('/signup', async (req, res) => {
             password,
             phone,
             zone,
-            role: role || 'citizen'
+            role: role || 'citizen',
+            firebaseUid
         });
 
         // Hash password
@@ -45,7 +52,10 @@ router.post('/signup', async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '24h' },
             (err, token) => {
-                if (err) throw err;
+                if (err) {
+                    console.error('JWT Sign Error:', err.message);
+                    return res.status(500).json({ message: 'Error generating authentication token' });
+                }
                 const userObj = user.toObject();
                 delete userObj.password;
                 userObj.id = userObj._id;
@@ -54,10 +64,20 @@ router.post('/signup', async (req, res) => {
         );
     } catch (err) {
         console.error('Signup Error:', err);
+        
+        // Handle MongoDB Duplicate Key Errors
+        if (err.code === 11000) {
+            const field = Object.keys(err.keyPattern)[0];
+            return res.status(400).json({ 
+                message: `User with this ${field} already exists` 
+            });
+        }
+
         if (err.name === 'ValidationError') {
             const messages = Object.values(err.errors).map(val => val.message);
             return res.status(400).json({ message: 'Validation Error: ' + messages.join(', ') });
         }
+        
         res.status(500).json({ message: 'Server Error: ' + err.message });
     }
 });
@@ -67,6 +87,12 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+
+        // Check for required environment variables
+        if (!process.env.JWT_SECRET) {
+            console.error('JWT_SECRET is missing from environment variables');
+            return res.status(500).json({ message: 'Server configuration error: missing secret' });
+        }
 
         // Check if user exists
         let user = await User.findOne({ email });
@@ -97,7 +123,10 @@ router.post('/login', async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '24h' },
             (err, token) => {
-                if (err) throw err;
+                if (err) {
+                    console.error('JWT Sign Error:', err.message);
+                    return res.status(500).json({ message: 'Error generating authentication token' });
+                }
                 const userObj = user.toObject();
                 delete userObj.password;
                 userObj.id = userObj._id;
@@ -118,6 +147,23 @@ router.get('/users', async (req, res) => {
         res.json(users);
     } catch (err) {
         console.error('Fetch Users Error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/auth/profile
+// @desc    Get current user profile
+router.get('/profile', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const userObj = user.toObject();
+        userObj.id = userObj._id;
+        res.json(userObj);
+    } catch (err) {
+        console.error('Get Profile Error:', err.message);
         res.status(500).send('Server Error');
     }
 });

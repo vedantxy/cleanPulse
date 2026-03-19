@@ -1,29 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
-    AlertCircle, 
+    AlertCircle,
     Camera, 
     MapPin, 
-    Trash2, 
     Send, 
     Info, 
     CheckCircle2,
     FileText,
-    ArrowLeft
+    ArrowLeft,
+    Leaf,
+    Recycle,
+    AlertTriangle,
+    Zap
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../../api/api';
+import LocationPicker from '../../components/LocationPicker';
 
 const SubmitReport = ({ isEdit = false }) => {
     const navigate = useNavigate();
     const { id } = useParams();
     const [formData, setFormData] = useState({
-        garbageType: 'Household',
+        garbageType: 'General',
         location: '',
-        landmark: '',
         zone: '',
         description: '',
         urgency: 'Medium',
-        photo: null
+        photo: null,
+        latitude: null,
+        longitude: null
     });
     
     const [preview, setPreview] = useState(null);
@@ -31,23 +36,32 @@ const SubmitReport = ({ isEdit = false }) => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
 
+    const wasteCategories = [
+        { value: 'General', label: 'General Waste', icon: <FileText size={16} /> },
+        { value: 'Recyclable', label: 'Recyclable', icon: <Recycle size={16} /> },
+        { value: 'Compostable', label: 'Compostable', icon: <Leaf size={16} /> },
+        { value: 'Hazardous', label: 'Hazardous', icon: <AlertTriangle size={16} /> },
+        { value: 'E-Waste', label: 'E-Waste', icon: <Zap size={16} /> },
+    ];
+
     useEffect(() => {
         if (isEdit && id) {
             fetchReportData();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEdit, id]);
 
     const fetchReportData = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`http://localhost:5000/api/reports/${id}`, {
+            const res = await api.get(`/reports/${id}`, {
                 headers: { 'x-auth-token': token }
             });
-            const { garbageType, location, landmark, zone, description, photo, urgency } = res.data;
-            setFormData({ garbageType, location, landmark, zone, description, urgency, photo: null }); // Don't put string in file input
+            const { garbageType, location, zone, description, photo, urgency, latitude, longitude } = res.data;
+            setFormData({ garbageType, location, zone, description, urgency, photo: null, latitude, longitude });
             if (photo) setPreview(photo);
         } catch (err) {
-            setError('Failed to fetch report data.');
+            setError('Connection error. Failed to fetch report data.');
             console.error(err);
         }
     };
@@ -72,28 +86,27 @@ const SubmitReport = ({ isEdit = false }) => {
         setError('');
         setIsSubmitting(true);
 
-        // Basic Validation
-        if (!formData.location || !formData.zone) {
-            setError('Please fill in required fields (Location and Zone)');
+        if (!formData.location || !formData.zone || !formData.latitude || !formData.longitude) {
+            setError('Please complete all required fields. Make sure to click on the map to pin the exact garbage location.');
             setIsSubmitting(false);
             return;
         }
 
         try {
             const token = localStorage.getItem('token');
-            const dataToSend = {
-                ...formData,
-                // In a real app, we'd handle photo upload differently. 
-                // Here we keep existing photo if no new one is uploaded.
-                photo: preview // Simplified for this exercise
+            const dataToSend = { 
+                ...formData, 
+                photo: preview,
+                latitude: formData.latitude,
+                longitude: formData.longitude
             };
 
             if (isEdit) {
-                await axios.put(`http://localhost:5000/api/reports/${id}`, dataToSend, {
+                await api.put(`/reports/${id}`, dataToSend, {
                     headers: { 'x-auth-token': token }
                 });
             } else {
-                await axios.post('http://localhost:5000/api/reports', dataToSend, {
+                await api.post('/reports', dataToSend, {
                     headers: { 'x-auth-token': token }
                 });
             }
@@ -102,175 +115,169 @@ const SubmitReport = ({ isEdit = false }) => {
             setTimeout(() => navigate('/citizen/my-reports'), 2000);
         } catch (err) {
             console.error('Submission error:', err);
-            const message = err.response?.data?.message || err.message || 'Failed to submit report. Please try again.';
-            setError(message);
+            setError(err.response?.data?.message || 'Submission failed. Please check your connection.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 bg-slate-50/50">
-            <div className="max-w-3xl mx-auto animate-fade-in">
+        <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
+            <div className="max-w-3xl mx-auto animate-slide-up relative z-10">
                 {/* Back Button */}
                 <button 
-                    onClick={() => navigate('/citizen/dashboard')}
-                    className="flex items-center space-x-2 text-slate-500 hover:text-emerald-600 transition-colors mb-6 group"
+                    onClick={() => navigate('/dashboard')}
+                    className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] transition-all mb-8 group text-[11px] font-black tracking-widest uppercase"
                 >
-                    <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                    <span className="font-bold">Back to Dashboard</span>
+                    <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                    <span>Back to Dashboard</span>
                 </button>
 
-                <div className="glass-card p-8 md:p-10 rounded-[2.5rem] shadow-xl border border-white/40">
-                    <div className="mb-10 flex items-center justify-between">
+                <div className="leaf-card relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--accent-leaf)]/5 rounded-full blur-[80px]" />
+                    
+                    <div className="mb-12 flex items-center justify-between border-b border-[var(--border-color)] pb-8">
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                                {isEdit ? 'Update Garbage Report' : 'Report Garbage Issue'}
+                            <h1 className="text-3xl font-black tracking-tighter font-['Playfair+Display'] uppercase text-[var(--text-primary)]">
+                                {isEdit ? 'Edit Report Data' : 'New Waste Report'}
                             </h1>
-                            <p className="text-slate-500 mt-2 font-medium">
-                                {isEdit ? 'Modify your previously submitted report' : 'Help us keep your neighborood clean'}
+                            <p className="text-[var(--text-muted)] mt-2 font-bold text-xs uppercase tracking-widest italic">
+                                {isEdit ? 'Updating your report' : 'Creating a new report'}
                             </p>
                         </div>
-                        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center shadow-inner">
-                            <Trash2 size={32} />
+                        <div className="w-16 h-16 bg-[var(--accent-green)]/10 text-[var(--accent-green)] rounded-3xl flex items-center justify-center border border-[var(--accent-green)]/20">
+                            <Leaf size={32} />
                         </div>
                     </div>
 
                     {error && (
-                        <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center space-x-3 text-rose-600 animate-shake">
-                            <AlertCircle size={20} />
+                        <div className="mb-8 p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center space-x-4 text-rose-600 dark:text-rose-400">
+                            <AlertCircle size={24} />
                             <p className="font-bold">{error}</p>
                         </div>
                     )}
 
                     {success && (
-                        <div className="mb-8 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center space-x-3 text-emerald-600">
-                            <CheckCircle2 size={20} />
-                            <p className="font-bold">
-                                {isEdit ? 'Report updated successfully!' : 'Report submitted successfully!'} Redirecting...
+                        <div className="mb-8 p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center space-x-4 text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 size={24} />
+                            <p className="font-black text-xs uppercase tracking-widest">
+                                {isEdit ? 'Report Updated' : 'Report Submitted'}! Syncing...
                             </p>
                         </div>
                     )}
 
-                    <form onSubmit={onSubmit} className="space-y-8">
+                    <form onSubmit={onSubmit} className="space-y-10">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Garbage Type */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700 ml-1">Garbage Type</label>
+                            {/* Waste Category */}
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-green)] ml-1">Waste Classification</label>
                                 <select 
                                     name="garbageType"
                                     value={formData.garbageType}
                                     onChange={onChange}
-                                    className="input-field w-full appearance-none bg-white font-bold"
+                                    className="earth-input font-bold uppercase tracking-widest text-[11px]"
                                 >
-                                    <option value="Household">Household Waste</option>
-                                    <option value="Industrial">Industrial Waste</option>
-                                    <option value="Medical">Medical Waste</option>
-                                    <option value="Construction">Construction Waste</option>
-                                    <option value="Other">Other</option>
+                                    {wasteCategories.map(cat => (
+                                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                    ))}
                                 </select>
                             </div>
 
-                            {/* City Zone */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700 ml-1">City Zone</label>
+                            {/* Zone */}
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-green)] ml-1">Local Zone</label>
                                 <select 
                                     name="zone"
                                     required
                                     value={formData.zone}
                                     onChange={onChange}
-                                    className="input-field w-full appearance-none bg-white font-bold"
+                                    className="earth-input font-bold uppercase tracking-widest text-[11px]"
                                 >
                                     <option value="">Select Zone</option>
-                                    <option value="North">North Zone</option>
-                                    <option value="South">South Zone</option>
-                                    <option value="East">East Zone</option>
-                                    <option value="West">West Zone</option>
-                                    <option value="Central">Central Zone</option>
+                                    <option value="Alpha">Alpha Region</option>
+                                    <option value="Beta">Beta Region</option>
+                                    <option value="Gamma">Gamma Region</option>
+                                    <option value="Delta">Delta Region</option>
+                                    <option value="Epsilon">Epsilon Region</option>
                                 </select>
-                            </div>
-
-                            {/* Location */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700 ml-1">Area / Location</label>
-                                <div className="relative">
-                                    <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input 
-                                        type="text"
-                                        name="location"
-                                        placeholder="e.g. MG Road, Near Market"
-                                        required
-                                        value={formData.location}
-                                        onChange={onChange}
-                                        className="input-field pl-12 w-full"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Landmark */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700 ml-1">Landmark (Optional)</label>
-                                <div className="relative">
-                                    <Info size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input 
-                                        type="text"
-                                        name="landmark"
-                                        placeholder="e.g. Near City Bank"
-                                        value={formData.landmark}
-                                        onChange={onChange}
-                                        className="input-field pl-12 w-full"
-                                    />
-                                </div>
                             </div>
                         </div>
 
+                        {/* Location Section */}
+                        <div className="space-y-6">
+                            <div className="relative group">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1 mb-2 block">Specific Location / Street</label>
+                                <div className="relative">
+                                    <MapPin className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
+                                    <input
+                                        name="location"
+                                        type="text"
+                                        required
+                                        className="earth-input pl-14 font-bold tracking-widest text-[11px]"
+                                        placeholder="Ex: Main Street, Near Park"
+                                        value={formData.location}
+                                        onChange={onChange}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Map Picker */}
+                            <LocationPicker 
+                                onLocationSelect={(coords) => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        latitude: coords.lat,
+                                        longitude: coords.lng
+                                    }));
+                                }}
+                                initialPosition={formData.latitude && formData.longitude ? [formData.latitude, formData.longitude] : null}
+                            />
+                        </div>
+
                         {/* Description */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700 ml-1">Description</label>
-                            <div className="relative">
-                                <FileText size={18} className="absolute left-4 top-4 text-slate-400" />
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-green)] ml-1">Report Description</label>
+                            <div className="relative group">
+                                <FileText size={18} className="absolute left-5 top-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
                                 <textarea 
                                     name="description"
                                     rows="4"
-                                    placeholder="Briefly describe the issue..."
+                                    placeholder="Briefly describe the waste issue..."
                                     value={formData.description}
                                     onChange={onChange}
-                                    className="input-field pl-12 w-full resize-none pt-4"
+                                    className="earth-input pl-14 w-full resize-none pt-5 font-medium tracking-tight"
                                 />
                             </div>
                         </div>
 
-                        {/* Urgency Level */}
-                        <div className="space-y-4">
-                            <label className="text-sm font-bold text-slate-700 ml-1 block">Urgency Level</label>
+                        {/* Urgency Rating */}
+                        <div className="space-y-6">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-green)] ml-1 block">Urgency Level</label>
                             <div className="flex flex-wrap gap-4">
                                 {['Low', 'Medium', 'High'].map((level) => (
                                     <button
                                         key={level}
                                         type="button"
                                         onClick={() => setFormData({...formData, urgency: level})}
-                                        className={`px-8 py-3 rounded-2xl font-bold transition-all transform active:scale-95 ${
+                                        className={`px-8 py-4 rounded-2xl font-black transition-all transform active:scale-95 text-[10px] tracking-widest uppercase ${
                                             formData.urgency === level 
-                                                ? level === 'Low' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
-                                                : level === 'Medium' ? 'bg-amber-500 text-white shadow-lg shadow-amber-200'
-                                                : 'bg-rose-600 text-white shadow-lg shadow-rose-200'
-                                                : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+                                                ? level === 'Low' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
+                                                : level === 'Medium' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/30'
+                                                : 'bg-rose-500/10 text-rose-600 border border-rose-500/30 animate-pulse'
+                                                : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-color)] hover:border-[var(--accent-green)]/30'
                                         }`}
                                     >
-                                        {level === 'Low' && '🟢 '}
-                                        {level === 'Medium' && '🟡 '}
-                                        {level === 'High' && '🔴 '}
                                         {level}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Photo Upload */}
-                        <div className="space-y-4 pt-4">
-                            <label className="text-sm font-bold text-slate-700 ml-1 block">Photo Evidence</label>
-                            <div className="flex flex-col md:flex-row items-center gap-8">
-                                <label className="w-full md:w-64 h-40 flex flex-col items-center justify-center border-3 border-dashed border-slate-200 rounded-[2rem] cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/10 transition-all group overflow-hidden relative">
+                        {/* Visual Evidence */}
+                        <div className="space-y-6">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-green)] ml-1 block">Photo Evidence</label>
+                            <div className="flex flex-col md:flex-row items-center gap-10">
+                                <label className="w-full md:w-80 h-48 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-color)] rounded-[2.5rem] cursor-pointer hover:border-[var(--accent-green)]/50 hover:bg-[var(--bg-secondary)] transition-all group overflow-hidden relative">
                                     <input 
                                         type="file" 
                                         accept="image/*" 
@@ -278,38 +285,45 @@ const SubmitReport = ({ isEdit = false }) => {
                                         className="hidden" 
                                     />
                                     {preview ? (
-                                        <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                                        <img src={preview} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                                     ) : (
                                         <>
-                                            <Camera className="w-10 h-10 text-slate-300 group-hover:text-emerald-500 transition-colors mb-2" />
-                                            <span className="text-slate-400 font-bold group-hover:text-emerald-600 transition-colors">Upload Photo</span>
+                                            <div className="p-5 bg-[var(--bg-secondary)] rounded-2xl mb-3 border border-[var(--border-color)] group-hover:bg-[var(--accent-green)]/10 transition-colors">
+                                                <Camera className="w-8 h-8 text-[var(--text-muted)] group-hover:text-[var(--accent-green)] transition-colors" />
+                                            </div>
+                                            <span className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.2em] group-hover:text-[var(--accent-green)] transition-colors text-center px-6 italic">Upload Photo</span>
                                         </>
                                     )}
                                 </label>
-                                <div className="flex-1 text-slate-500 text-sm font-medium leading-relaxed bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
-                                    <p className="flex items-center gap-2 mb-2">
-                                        <Info size={16} className="text-blue-500" />
-                                        <strong>Why upload a photo?</strong>
-                                    </p>
-                                    <p>Uploading a clear photo helps waste collectors identify the location and amount of waste quickly, leading to faster resolution times.</p>
+                                <div className="flex-1 bg-[var(--bg-secondary)] p-8 rounded-[2.5rem] border border-[var(--border-color)] relative overflow-hidden group">
+                                    <div className="relative z-10">
+                                        <p className="flex items-center gap-3 mb-4 text-[var(--accent-green)] text-xs font-black uppercase tracking-widest">
+                                            <Info size={16} />
+                                            <span>Environmental Tip</span>
+                                        </p>
+                                        <p className="text-[var(--text-muted)] text-sm font-medium leading-relaxed italic">
+                                            &quot;A single photo can communicate more than a thousand coordinates. Help us protect our home.&quot;
+                                        </p>
+                                    </div>
+                                    <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-[var(--accent-green)]/5 rounded-full blur-2xl transition-all group-hover:scale-125" />
                                 </div>
                             </div>
                         </div>
 
                         {/* Submit Button */}
-                        <div className="pt-8">
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="w-full btn-primary flex items-center justify-center space-x-3 group py-5"
-                            >
+                        <div className="pt-10">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="eco-button w-full py-6 flex items-center justify-center gap-4 text-sm tracking-[0.2em] font-black uppercase"
+                                >
                                 {isSubmitting ? (
                                     <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                        <span className="text-lg">
-                                            {isEdit ? 'Save Changes' : 'Submit Garbage Report'}
+                                        <Send size={20} />
+                                        <span>
+                                            {isEdit ? 'Update Report' : 'Submit Report'}
                                         </span>
                                     </>
                                 )}

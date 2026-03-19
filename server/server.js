@@ -4,7 +4,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 
-dotenv.config();
+const path = require('path');
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 
@@ -15,9 +16,22 @@ app.use(cookieParser());
 app.use(cors());
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.log(err));
+const connectDB = async () => {
+    try {
+        console.log('Attempting to connect to MongoDB...');
+        if (!process.env.MONGO_URI) {
+            throw new Error('MONGO_URI is not defined in environment variables');
+        }
+        await mongoose.connect(process.env.MONGO_URI);
+        console.log('MongoDB Connected Successfully');
+    } catch (err) {
+        console.error('MongoDB Connection Error:', err.message);
+        // Exit process with failure
+        process.exit(1);
+    }
+};
+
+connectDB();
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -27,6 +41,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/badges', require('./routes/badges'));
 app.use('/api/rewards', require('./routes/rewards'));
+app.use('/api/ai', require('./routes/ai'));
 
 app.get('/', (req, res) => {
     res.send('SmartWaste API is running...');
