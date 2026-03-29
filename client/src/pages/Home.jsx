@@ -32,76 +32,60 @@ const Home = () => {
     ];
 
     return (
-        <div className="min-h-screen pt-24 font-sans text-[var(--text-primary)]">
-            {/* Nature Hero Section */}
-            <section className="relative py-28 overflow-hidden">
-                <div className="absolute top-0 right-0 -z-10 w-2/3 h-full bg-[var(--accent-green)]/5 rounded-l-[200px] blur-[100px]" />
-                <div className="absolute bottom-0 left-0 -z-10 w-1/2 h-1/2 bg-[var(--accent-leaf)]/5 rounded-full blur-[120px]" />
-                
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center">
-                    <div className="lg:w-1/2 space-y-10 animate-slide-up relative z-10 text-center lg:text-left">
-                        <div className="inline-flex items-center space-x-3 px-5 py-2.5 bg-[var(--accent-green)]/10 border border-[var(--accent-green)]/20 text-[var(--accent-green)] rounded-full text-xs font-black uppercase tracking-[0.2em]">
-                            <span className="relative flex h-2.5 w-2.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-leaf)] opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--accent-green)]"></span>
-                            </span>
-                            <span>Keep it Clean</span>
+        <div className="min-h-screen pt-32 relative overflow-hidden">
+            <div className="star-pattern" />
+            
+            <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+                <div className="flex flex-col lg:flex-row items-center gap-16 py-20">
+                    {/* Left Content */}
+                    <div className="lg:w-1/2 space-y-8 animate-slide-up">
+                        <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/50 backdrop-blur-sm border border-[#1B4332]/10 rounded-full shadow-sm">
+                            <div className="w-2 h-2 rounded-full bg-[#209c6c]" />
+                            <span className="text-[10px] font-black tracking-[0.2em] text-[#1B4332]">RESTORE THE HARMONY</span>
                         </div>
                         
-                        <h1 className="text-6xl lg:text-8xl font-black font-['Playfair+Display'] leading-none tracking-tighter uppercase">
-                            CLEAN <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-green)] to-[var(--accent-leaf)] animate-gradient inline-block">
-                                PULSE
-                            </span>
-                        </h1>
+                        <div className="space-y-4">
+                            <h1 className="text-[120px] font-black leading-[0.8] tracking-tighter text-[#1B4332] font-['Playfair_Display']">
+                                CLEAN <br />
+                                <span className="text-[#52B788]">PULSE</span>
+                            </h1>
+                        </div>
                         
-                        <p className="text-xl text-[var(--text-muted)] max-w-lg leading-relaxed font-medium">
-                            A smart platform for a cleaner city, connecting citizens and collectors to maintain a healthy environment.
+                        <p className="max-w-md text-lg text-[#1B4332]/70 leading-relaxed font-medium">
+                            The definitive platform for planetary healing, connecting citizens and guardians to maintain a pristine ecosystem.
                         </p>
                         
-                        <div className="flex flex-wrap gap-6 justify-center lg:justify-start">
-                            <Link to="/signup" className="eco-button flex items-center space-x-3 px-12 py-5 text-sm uppercase tracking-widest shadow-2xl">
-                                <span>GET STARTED</span>
-                                <ArrowRight size={20} />
+                        <div className="flex flex-wrap gap-4 items-center">
+                            <Link to="/signup" className="eco-button group">
+                                JOIN SANCTUARY
+                                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                             </Link>
-                            <Link to="/login" className="px-10 py-5 border border-[var(--border-color)] text-[var(--accent-green)] font-black rounded-2xl hover:bg-[var(--accent-green)]/5 transition-all text-xs tracking-widest uppercase">
-                                Login Access
+                            <Link to="/login" className="px-10 py-4 border border-[#1B4332]/10 rounded-xl text-[#1B4332] font-black text-sm tracking-widest uppercase hover:bg-white/50 transition-all">
+                                LOGIN ACCESS
                             </Link>
-                        </div>
-
-                        <div className="flex items-center space-x-6 pt-10 border-t border-[var(--border-color)] justify-center lg:justify-start">
-                            <div className="flex -space-x-3">
-                                {[1,2,3,4].map(i => (
-                                    <div key={i} className="w-10 h-10 rounded-full border-2 border-[var(--bg-primary)] bg-[var(--bg-secondary)] flex items-center justify-center overflow-hidden">
-                                        <img src={`https://i.pravatar.cc/100?u=nature-${i}`} alt="user" />
-                                    </div>
-                                ))}
-                            </div>
-                            <p className="text-[var(--text-muted)] text-xs font-black uppercase tracking-widest">
-                                <span className="text-[var(--accent-green)]">50,000+</span> Active Users
-                            </p>
                         </div>
                     </div>
 
-                    <div className="lg:w-1/2 mt-20 lg:mt-0 relative group flex justify-center">
-                        <div className="absolute -top-10 -left-10 w-64 h-64 bg-[var(--accent-green)]/10 rounded-full blur-[100px] animate-pulse" />
-                        <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-[var(--accent-leaf)]/10 rounded-full blur-[100px] animate-pulse" />
-                        
-                        <div className="relative leaf-card p-4 rounded-[4rem] group-hover:scale-[1.02] transition-transform duration-700 -rotate-3 border-4 border-[var(--bg-card)]">
+                    {/* Right Image Content */}
+                    <div className="lg:w-1/2 relative">
+                        <div className="relative z-10 p-4 bg-white rounded-[3rem] shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-700 overflow-hidden">
                             <img 
                                 src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=1000" 
-                                alt="Pristine Forest Environment" 
-                                className="rounded-[3rem] shadow-2xl relative z-10 w-full"
+                                alt="Pristine Forest Path" 
+                                className="rounded-[2.5rem] w-full h-[500px] object-cover"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)]/40 via-transparent to-transparent opacity-60 rounded-[3rem] z-10" />
                             
-                            <div className="absolute bottom-10 left-10 z-20 space-y-2">
-                                <div className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl w-fit">
-                                    <Leaf size={24} className="text-white fill-white" />
+                            {/* Eco Badge inside image */}
+                            <div className="absolute bottom-8 left-8 flex flex-col gap-2">
+                                <div className="p-3 bg-black/40 backdrop-blur-md rounded-xl w-fit">
+                                    <Leaf size={24} className="text-white" fill="white" />
                                 </div>
-                                <p className="text-white font-black text-xs tracking-widest uppercase shadow-sm">Eco-Sync Active</p>
+                                <span className="text-white font-black text-[10px] tracking-[0.2em] uppercase">ECO-SYNC ACTIVE</span>
                             </div>
                         </div>
+                        
+                        {/* Decorative background circle */}
+                        <div className="absolute -top-10 -right-10 w-64 h-64 bg-[#52B788]/20 rounded-full blur-3xl -z-10" />
                     </div>
                 </div>
             </section>

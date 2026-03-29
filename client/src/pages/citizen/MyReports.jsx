@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 import { 
     Search, 
     Filter, 
@@ -35,7 +35,7 @@ const MyReports = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get(`/api/reports`, {
+            const res = await api.get(`/reports`, {
                 headers: { 'x-auth-token': token },
                 params: {
                     status: statusFilter,
@@ -63,7 +63,7 @@ const MyReports = () => {
         if (!window.confirm('Delete this report?')) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`/api/reports/${id}`, {
+            await api.delete(`/reports/${id}`, {
                 headers: { 'x-auth-token': token }
             });
             fetchReports();
@@ -108,7 +108,7 @@ const MyReports = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
                 <div className="flex items-center space-x-6">
                     <button 
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/citizen')}
                         className="p-4 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-sm hover:border-[var(--accent-green)] transition-all text-[var(--text-muted)] hover:text-[var(--accent-green)] active:scale-95"
                     >
                         <ArrowLeft size={24} />
@@ -284,7 +284,7 @@ const MyReports = () => {
                     <p className="text-[var(--text-primary)] font-black text-xl uppercase tracking-tighter">No reports found.</p>
                     <p className="text-[var(--text-muted)] font-bold uppercase tracking-widest text-xs mt-3 italic">Submit a new report to see it here.</p>
                     <button 
-                        onClick={() => navigate('/citizen/report')}
+                        onClick={() => navigate('/citizen/submit')}
                         className="mt-8 eco-button"
                     >
                         New Report

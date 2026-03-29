@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 import { 
     Search, 
     Filter, 
@@ -58,7 +58,7 @@ const AdminReports = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get(`/api/reports`, {
+            const res = await api.get(`/reports`, {
                 headers: { 'x-auth-token': token },
                 params: {
                     status: statusFilter,
@@ -94,7 +94,7 @@ const AdminReports = () => {
         if (!window.confirm('Delete this report permanently?')) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`/api/reports/${id}`, {
+            await api.delete(`/reports/${id}`, {
                 headers: { 'x-auth-token': token }
             });
             fetchReports();
@@ -109,7 +109,7 @@ const AdminReports = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
                 <div className="flex items-center space-x-6">
                     <button 
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/admin')}
                         className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-sm hover:bg-[var(--accent-green)]/10 hover:border-[var(--accent-green)]/30 transition-all text-[var(--text-muted)] hover:text-[var(--accent-green)] active:scale-95"
                     >
                         <ArrowLeft size={24} />
@@ -268,7 +268,7 @@ const AdminReports = () => {
                                                                 const newStatus = e.target.value;
                                                                 const token = localStorage.getItem('token');
                                                                 try {
-                                                                    await axios.put(`/api/reports/${report._id}/status`, { status: newStatus }, {
+                                                                    await api.put(`/reports/${report._id}/status`, { status: newStatus }, {
                                                                         headers: { 'x-auth-token': token }
                                                                     });
                                                                     fetchReports();

@@ -40,6 +40,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/badges', require('./routes/badges'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/rewards', require('./routes/rewards'));
 app.use('/api/ai', require('./routes/ai'));
 
@@ -48,5 +49,8 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+}
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+module.exports = app;

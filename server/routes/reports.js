@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Report = require('../models/Report');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
 
 // @route   POST /api/reports
@@ -214,6 +216,21 @@ router.put('/:id/status', auth, async (req, res) => {
 
         report.status = status;
         await report.save();
+
+        // Trigger Notification for Citizen
+        try {
+            const statusEmoji = status === 'Resolved' ? '✅' : status === 'In Progress' ? '🚧' : '📩';
+            const newNotif = new Notification({
+                recipient: report.citizenId,
+                title: `Report ${status}`,
+                message: `${statusEmoji} Your report for ${report.location} is now ${status.toLowerCase()}.`,
+                type: 'REPORT_UPDATE',
+                relatedId: report._id
+            });
+            await newNotif.save();
+        } catch (notifErr) {
+            console.error('Notification trigger error:', notifErr.message);
+        }
 
         // If report is resolved, award credits (+50) and check for badges for the citizen
         if (status === 'Resolved') {

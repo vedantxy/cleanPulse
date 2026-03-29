@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react';
+import axios from 'axios';
 import api from '../api/api';
 import {
     createUserWithEmailAndPassword,
@@ -107,7 +108,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', backendToken);
         localStorage.setItem('user', JSON.stringify(res.data.user));
         
-        axios.defaults.headers.common['x-auth-token'] = backendToken;
+        api.defaults.headers.common['x-auth-token'] = backendToken;
         setToken(backendToken);
         setUser(res.data.user);
         return res.data;
@@ -123,26 +124,36 @@ export const AuthProvider = ({ children }) => {
             
             // Step 1: Check MERN backend
             try {
-                const res = await axios.post('/api/auth/login', { email, password });
+                const res = await api.post('/auth/login', { email, password });
                 
                 // Step 2: MERN succeeded, so sync to Firebase
                 try {
                     await createUserWithEmailAndPassword(auth, email, password);
                     console.log('Legacy user synced to Firebase successfully.');
                 } catch (syncErr) {
-                    console.error('Firebase sync failed during login:', syncErr.message);
+                    // This often means user already exists in Firebase but needs sync
+                    console.warn('Firebase sync notice:', syncErr.message);
                 }
 
                 // Step 3: Handle success
                 return handleAuthSuccess(res.data);
-            } catch {
+            } catch (mernErr) {
+                console.error('MERN login failed:', mernErr.response?.data?.message || mernErr.message);
+                
+                // If MERN backend gives a specific message, prioritize it
+                if (mernErr.response?.data?.message) {
+                    const enhancedErr = new Error(mernErr.response.data.message);
+                    enhancedErr.response = mernErr.response;
+                    throw enhancedErr;
+                }
+                
                 // If both fail, throw original Firebase error for UI
                 throw firebaseErr;
             }
         }
 
         if (firebaseSuccess) {
-            const res = await axios.post('/api/auth/login', { email, password });
+            const res = await api.post('/auth/login', { email, password });
             return handleAuthSuccess(res.data);
         }
     };
@@ -152,7 +163,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', backendToken);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        axios.defaults.headers.common['x-auth-token'] = backendToken;
+        api.defaults.headers.common['x-auth-token'] = backendToken;
         setToken(backendToken); 
         setUser(data.user);
         return data;

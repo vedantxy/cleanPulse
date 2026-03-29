@@ -22,7 +22,7 @@ router.get('/citizen', auth, async (req, res) => {
             .limit(5);
 
         const User = require('../models/User');
-        const user = await User.findById(req.user.id).select('ecoCredits rank');
+        const user = await User.findById(req.user.id).select('ecoCredits rank zone');
 
         if (!user) {
             return res.status(404).json({ message: 'User profile not found. Please log in again.' });
@@ -33,7 +33,8 @@ router.get('/citizen', auth, async (req, res) => {
             recentReports,
             user: {
                 ecoCredits: user.ecoCredits || 0,
-                rank: user.rank || 'Seedling'
+                rank: user.rank || 'Seedling',
+                zone: user.zone || 'Global'
             }
         });
     } catch (err) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 import { 
     Truck, 
     MapPin, 
@@ -54,7 +54,7 @@ const CollectorPickups = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get(`/api/reports?zone=${user.zone}&status=${filter}`, {
+            const res = await api.get(`/reports?zone=${user.zone}&status=${filter}`, {
                 headers: { 'x-auth-token': token }
             });
             setReports(res.data.reports);
@@ -81,7 +81,7 @@ const CollectorPickups = () => {
     const handleUpdateStatus = async (id, status) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`/api/reports/${id}/status`, { status }, {
+            await api.put(`/reports/${id}/status`, { status }, {
                 headers: { 'x-auth-token': token }
             });
             fetchPickups();
@@ -101,7 +101,7 @@ const CollectorPickups = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
                 <div className="flex items-center space-x-6">
                     <button 
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/collector')}
                         className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-sm hover:bg-[var(--accent-green)]/10 hover:border-[var(--accent-green)]/30 transition-all text-[var(--text-muted)] hover:text-[var(--accent-green)] active:scale-95"
                     >
                         <ArrowLeft size={24} />

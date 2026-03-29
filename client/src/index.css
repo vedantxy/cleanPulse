@@ -7,18 +7,19 @@
 @layer base {
   :root {
     /* Fresh Forest Morning (Light Mode) */
-    --bg-primary: #F0F7EE;
-    --bg-secondary: #E8F5E0;
+    --bg-primary: #E9F5E9; /* Lighter green background from image */
+    --bg-secondary: #F4FAF4;
     --bg-card: #FFFFFF;
-    --accent-green: #2D6A4F;
-    --accent-leaf: #52B788;
+    --accent-green: #1B4332; /* Darker green for text/titles */
+    --accent-leaf: #2D6A4F;
+    --accent-bright: #52B788;
     --accent-earth: #8B5E3C;
-    --text-primary: #1B3A2D;
+    --text-primary: #1B4332;
     --text-muted: #4A7C59;
-    --border-color: rgba(45, 106, 79, 0.1);
+    --border-color: rgba(27, 67, 50, 0.1);
     --transition-speed: 0.4s;
     
-    /* Legacy Mappings for existing logic fallback */
+    /* Legacy Mappings */
     --text-main: var(--text-primary);
     --bg-main: var(--bg-primary);
     --card-bg: var(--bg-card);
@@ -26,9 +27,9 @@
 
   .dark {
     /* Deep Jungle Night (Dark Mode) */
-    --bg-primary: #0A1A0F;
-    --bg-secondary: #0F2318;
-    --bg-card: rgba(82, 183, 136, 0.06);
+    --bg-primary: #081C15;
+    --bg-secondary: #1B4332;
+    --bg-card: rgba(45, 106, 79, 0.1);
     --accent-green: #52B788;
     --accent-leaf: #74C69D;
     --accent-glow: rgba(82, 183, 136, 0.35);
@@ -40,6 +41,8 @@
   body {
     @apply bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased transition-colors duration-[var(--transition-speed)];
     font-family: 'DM Sans', sans-serif;
+    background-image: radial-gradient(circle at 2px 2px, rgba(27, 67, 50, 0.05) 1px, transparent 0);
+    background-size: 40px 40px;
     background-attachment: fixed;
   }
 
@@ -57,89 +60,71 @@
     backdrop-filter: blur(12px);
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    @apply p-8 rounded-[2.5rem] shadow-xl transition-all duration-[var(--transition-speed)];
+    @apply p-8 rounded-[2rem] shadow-xl transition-all duration-[var(--transition-speed)];
   }
 
   .leaf-card:hover {
-    @apply -translate-y-2 shadow-2xl;
-    border-color: var(--accent-leaf);
+    @apply -translate-y-1 shadow-2xl;
+    border-color: var(--accent-bright);
   }
 
   .eco-button {
-    @apply px-8 py-4 bg-gradient-to-r from-[var(--accent-green)] to-[var(--accent-leaf)] text-white font-bold rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 shadow-lg;
+    @apply px-8 py-4 bg-gradient-to-r from-[#2D6A4F] to-[#52B788] text-white font-bold rounded-xl flex items-center justify-center gap-3 transition-all duration-300 shadow-lg;
   }
 
   .eco-button:hover {
-    @apply -translate-y-0.5 scale-[1.02];
-    box-shadow: 0 10px 20px rgba(45, 106, 79, 0.2);
-  }
-
-  .eco-button:active {
-    @apply scale-95;
-  }
-
-  .nature-badge {
-    @apply px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2;
-  }
-
-  .nature-badge-recyclable {
-    @apply bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
-  }
-
-  .nature-badge-compostable {
-    @apply bg-[#8B5E3C]/10 text-[#8B5E3C] dark:text-[#A67C52] border border-[#8B5E3C]/20;
-  }
-
-  .nature-badge-hazardous {
-    @apply bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20;
-    animation: eco-pulse 2s infinite;
-  }
-
-  .nature-badge-ewaste {
-    @apply bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20;
-  }
-
-  .nature-badge-general {
-    @apply bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20;
+    @apply -translate-y-0.5 scale-[1.02] shadow-2xl;
   }
 
   .earth-input {
-    @apply w-full px-6 py-4 rounded-2xl bg-white/50 dark:bg-black/20 border border-[var(--border-color)] outline-none transition-all duration-300 text-[var(--text-primary)] font-medium;
+    @apply w-full px-6 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] font-bold tracking-tight transition-all duration-300 outline-none appearance-none shadow-sm;
+    background-image: linear-gradient(to bottom right, var(--bg-card), var(--bg-secondary));
+  }
+
+  .earth-input:hover {
+    @apply border-[var(--accent-leaf)] shadow-md;
+    border-color: color-mix(in srgb, var(--accent-leaf), transparent 70%);
   }
 
   .earth-input:focus {
-    @apply border-[var(--accent-leaf)] ring-4 ring-[var(--accent-leaf)] ring-opacity-10;
+    @apply border-[var(--accent-bright)] shadow-lg scale-[1.01];
+    border-color: var(--accent-bright);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent-bright), transparent 80%);
   }
 
   .earth-input::placeholder {
-    @apply text-[var(--text-muted)] italic opacity-60;
+    @apply text-[var(--text-muted)] opacity-40 italic font-medium;
   }
 
-  /* Stat Cards */
-  .stat-card-nature {
-    @apply leaf-card relative overflow-hidden;
-  }
-
-  .stat-card-nature .accent-line {
-    @apply absolute bottom-0 left-0 w-full h-1.5;
-  }
-
-  /* Backgrounds */
-  .nature-bg-overlay {
-    @apply fixed inset-0 pointer-events-none z-[-1];
-  }
-
-  .leaf-pattern {
-    @apply absolute inset-0 opacity-[0.04];
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5c-5 10-15 15-25 15 10 5 15 15 15 25 5-10 15-15 25-15-10-5-15-15-15-25z' fill='%232D6A4F' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
-    animation: leaf-fall 20s linear infinite;
+  .star-pattern {
+    @apply absolute inset-0 opacity-[0.03] pointer-events-none;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 10L55 40L85 45L55 50L50 80L45 50L15 45L45 40Z' fill='%231B4332'/%3E%3C/svg%3E");
+    background-size: 150px 150px;
   }
 
   .hero-breath {
     @apply absolute inset-0 opacity-20;
     background: radial-gradient(circle at center, var(--accent-leaf), transparent 70%);
     animation: breathing 6s ease-in-out infinite;
+  }
+
+  /* Nature Themed Stat Cards */
+  .stat-card-nature {
+    @apply flex flex-col items-center justify-center text-center rounded-[2.5rem] border border-[var(--border-color)] bg-white/40 dark:bg-black/20 backdrop-blur-md transition-all duration-300 relative overflow-hidden;
+  }
+
+  .stat-card-nature:hover {
+    @apply -translate-y-2 shadow-2xl;
+    border-color: var(--accent-bright);
+    background: white;
+  }
+
+  .stat-card-nature .accent-line {
+    @apply h-1.5 w-0 rounded-full transition-all duration-[var(--transition-speed)] absolute bottom-0 left-1/2 -translate-x-1/2;
+  }
+
+  .stat-card-nature:hover .accent-line {
+    @apply w-[60%];
   }
 }
 
@@ -180,5 +165,42 @@
 
 .animate-count {
     animation: countUp 0.8s ease-out forwards;
+}
+
+/* UI Overhaul Utilities */
+.glass-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  @apply rounded-[2.5rem] shadow-2xl;
+}
+
+.dark .glass-card {
+  background: rgba(45, 106, 79, 0.1);
+  border: 1px solid rgba(82, 183, 136, 0.1);
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.grid-dashboard {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
 }
 @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } .fade-slide-up { animation: fadeSlideUp 0.4s ease forwards; } @keyframes spin { to { transform: rotate(360deg); } } .spin { display: inline-block; animation: spin 0.8s linear infinite; }

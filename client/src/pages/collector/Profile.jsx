@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 import { Mail, MapPin, Award, CheckCircle, Clock, ShieldCheck, Trophy, X, Calendar, BarChart as BarChart2, Briefcase } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -46,7 +46,7 @@ const CollectorProfile = () => {
     useEffect(() => {
         const fetchProfileData = async () => {
             try {
-                const res = await axios.get('/api/dashboard/collector', { 
+                const res = await api.get('/dashboard/collector', { 
                     headers: { 'x-auth-token': token } 
                 });
 
@@ -73,7 +73,7 @@ const CollectorProfile = () => {
         e.preventDefault();
         setUpdateLoading(true);
         try {
-            const res = await axios.put('/api/auth/profile', editForm, {
+            const res = await api.put('/auth/profile', editForm, {
                 headers: { 'x-auth-token': token }
             });
             updateUser(res.data);
@@ -98,7 +98,7 @@ const CollectorProfile = () => {
         }
         setPasswordLoading(true);
         try {
-            await axios.put('/api/auth/change-password', 
+            await api.put('/auth/change-password', 
                 { currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword },
                 { headers: { 'x-auth-token': token } }
             );

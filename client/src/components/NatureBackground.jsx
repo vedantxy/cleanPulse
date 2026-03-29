@@ -76,8 +76,13 @@ const NatureBackground = () => {
     }, [theme]);
 
     return (
-        <div className="nature-bg-overlay">
-            {theme === 'light' && <div className="leaf-pattern" />}
+        <div className="nature-bg-overlay overflow-hidden">
+            {theme === 'light' && (
+                <>
+                    <div className="leaf-pattern" />
+                    <div className="star-pattern opacity-[0.05]" />
+                </>
+            )}
             <div className="hero-breath" />
             <canvas 
                 ref={canvasRef} 

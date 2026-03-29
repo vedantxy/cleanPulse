@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 import { 
     Trophy, 
@@ -23,7 +23,7 @@ const Leaderboard = () => {
     const fetchLeaderboard = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('/api/rewards/leaderboard', {
+            const res = await api.get('/rewards/leaderboard', {
                 headers: { 'x-auth-token': token }
             });
             setCitizens(res.data);
@@ -59,7 +59,7 @@ const Leaderboard = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
                 <div className="flex items-center space-x-6">
                     <button 
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/citizen')}
                         className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-sm hover:border-[var(--accent-green)] transition-all text-[var(--text-muted)] hover:text-[var(--accent-green)] active:scale-95"
                     >
                         <ArrowLeft size={24} />

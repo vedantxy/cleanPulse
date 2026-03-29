@@ -105,4 +105,41 @@ router.get('/trends', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/analytics/public
+// @desc    Get general city-wide stats (Available to all users)
+// @access  Private
+router.get('/public', auth, async (req, res) => {
+    try {
+        const stats = await Report.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: 1 },
+                    pending: { $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] } },
+                    inProgress: { $sum: { $cond: [{ $eq: ["$status", "In Progress"] }, 1, 0] } },
+                    resolved: { $sum: { $cond: [{ $eq: ["$status", "Resolved"] }, 1, 0] } }
+                }
+            }
+        ]);
+
+        const zones = await Report.aggregate([
+            {
+                $group: {
+                    _id: "$zone",
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        res.json({
+            stats: stats[0] || { total: 0, pending: 0, inProgress: 0, resolved: 0 },
+            zoneData: zones.map(z => ({ name: z._id || 'Unknown', count: z.count }))
+        });
+    } catch (err) {
+        console.error('Public Analytics Error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

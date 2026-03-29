@@ -112,7 +112,7 @@ const SubmitReport = ({ isEdit = false }) => {
             }
 
             setSuccess(true);
-            setTimeout(() => navigate('/citizen/my-reports'), 2000);
+            setTimeout(() => navigate('/citizen/reports'), 2000);
         } catch (err) {
             console.error('Submission error:', err);
             setError(err.response?.data?.message || 'Submission failed. Please check your connection.');
@@ -126,7 +126,7 @@ const SubmitReport = ({ isEdit = false }) => {
             <div className="max-w-3xl mx-auto animate-slide-up relative z-10">
                 {/* Back Button */}
                 <button 
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => navigate('/citizen')}
                     className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] transition-all mb-8 group text-[11px] font-black tracking-widest uppercase"
                 >
                     <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />

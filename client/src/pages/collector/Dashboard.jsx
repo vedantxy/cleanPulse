@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Truck, CheckCircle, Clock, MapPin, Play, Check, ClipboardList, Loader2, AlertCircle, Sparkles, Activity, ShieldCheck, Zap } from 'lucide-react';
@@ -32,7 +32,7 @@ const CollectorDashboard = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const res = await axios.get('/api/dashboard/collector');
+                const res = await api.get('/dashboard/collector');
                 setData(res.data);
             } catch (err) {
                 const msg = err.response?.data?.message || err.message || 'Failed to connect to the system. Please try again.';
@@ -47,8 +47,8 @@ const CollectorDashboard = () => {
 
     const handleUpdateStatus = async (id, status) => {
         try {
-            await axios.put(`/api/reports/${id}/status`, { status });
-            const res = await axios.get('/api/dashboard/collector');
+            await api.put(`/reports/${id}/status`, { status });
+            const res = await api.get('/dashboard/collector');
             setData(res.data);
         } catch {
             // Silently handle

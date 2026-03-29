@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 import { 
     Users as UsersIcon, 
     Search, 
@@ -27,7 +27,7 @@ const AdminUsers = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get(`/api/admin/users`, {
+            const res = await api.get(`/admin/users`, {
                 headers: { 'x-auth-token': token },
                 params: {
                     role: roleFilter,
@@ -50,7 +50,7 @@ const AdminUsers = () => {
         try {
             setStatusUpdating(userId);
             const token = localStorage.getItem('token');
-            await axios.put(`/api/admin/users/${userId}/status`, { isActive: !currentStatus }, {
+            await api.put(`/admin/users/${userId}/status`, { isActive: !currentStatus }, {
                 headers: { 'x-auth-token': token }
             });
             fetchUsers();
@@ -73,7 +73,7 @@ const AdminUsers = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
                 <div className="flex items-center space-x-6">
                     <button 
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/admin')}
                         className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-sm hover:bg-[var(--accent-green)]/10 hover:border-[var(--accent-green)]/30 transition-all text-[var(--text-muted)] hover:text-[var(--accent-green)] active:scale-95"
                     >
                         <ArrowLeft size={24} />
@@ -186,7 +186,7 @@ const AdminUsers = () => {
                                             onChange={(e) => {
                                                 const newZone = e.target.value;
                                                 const token = localStorage.getItem('token');
-                                                axios.put(`/api/admin/users/${u._id}/zone`, { zone: newZone }, {
+                                                api.put(`/admin/users/${u._id}/zone`, { zone: newZone }, {
                                                     headers: { 'x-auth-token': token }
                                                 }).then(() => fetchUsers()).catch(() => alert('Update failed.'));
                                             }}

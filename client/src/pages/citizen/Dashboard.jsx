@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import api from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
-import { Leaf, CheckCircle, Clock, RefreshCcw, MapPin, AlertCircle, Loader2, Activity, ShieldCheck, Recycle, Sparkles } from 'lucide-react';
+import { Leaf, CheckCircle, Clock, RefreshCcw, MapPin, AlertCircle, Loader2, Activity, ShieldCheck, Recycle, Sparkles, Award, Star, Plus, FileText, Trophy } from 'lucide-react';
 
 const CountUp = ({ end, duration = 2000 }) => {
     const [count, setCount] = useState(0);
@@ -24,213 +26,314 @@ const CountUp = ({ end, duration = 2000 }) => {
 };
 
 const CitizenDashboard = () => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const navigate = useNavigate();
-    const [data, setData] = useState(null);
+    const [userData, setUserData] = useState(null);
+    const [zoneReports, setZoneReports] = useState([]);
+    const [availableRewards, setAvailableRewards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const mapRef = useRef(null);
+    const mapInstance = useRef(null);
+
     useEffect(() => {
-        const fetchDashboardData = async () => {
+        const fetchData = async () => {
             try {
-                const res = await axios.get('/api/dashboard/citizen');
-                setData(res.data);
+                const [dashRes, rewardRes] = await Promise.all([
+                    api.get('/dashboard/citizen', { headers: { 'x-auth-token': token } }),
+                    api.get('/rewards/items', { headers: { 'x-auth-token': token } })
+                ]);
+                
+                setUserData(dashRes.data);
+                setAvailableRewards(rewardRes.data || []);
+                
+                const currentZone = dashRes.data.user?.zone || user?.zone;
+                if (currentZone) {
+                    const reportsRes = await api.get(`/reports?zone=${currentZone}`, {
+                        headers: { 'x-auth-token': token }
+                    });
+                    setZoneReports(reportsRes.data.reports || []);
+                }
             } catch (err) {
-                const msg = err.response?.data?.message || err.message || 'Connection error. Failed to load dashboard.';
-                setError(msg);
+                setError(err.response?.data?.message || err.message || 'Failed to load dashboard.');
                 console.error(err);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchDashboardData();
-    }, []);
+        if (token) fetchData();
+    }, [token, user?.zone]);
+
+    const handleRedeem = async (reward) => {
+        if (userData?.user?.ecoCredits < reward.points) {
+            alert('Not enough reward points!');
+            return;
+        }
+        if (!window.confirm(`Redeem ${reward.points} points for ${reward.name}?`)) return;
+
+        try {
+            const res = await api.post('/rewards/redeem', 
+                { rewardId: reward._id, points: reward.points },
+                { headers: { 'x-auth-token': token } }
+            );
+            alert(res.data.message);
+            window.location.reload();
+        } catch (err) {
+            alert(err.response?.data?.message || 'Redemption failed');
+        }
+    };
+
+    useEffect(() => {
+        if (!loading && zoneReports.length > 0 && mapRef.current) {
+            if (mapInstance.current) {
+                mapInstance.current.remove();
+            }
+
+            const defaultCoords = [zoneReports[0].latitude, zoneReports[0].longitude];
+            mapInstance.current = L.map(mapRef.current).setView(defaultCoords, 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(mapInstance.current);
+
+            zoneReports.forEach(report => {
+                if (report.latitude && report.longitude) {
+                    const iconHtml = `<div class="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent-green)] text-white text-[10px] font-black shadow-lg border-2 border-white">${report.status.charAt(0)}</div>`;
+                    const customIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: iconHtml,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32]
+                    });
+
+                    L.marker([report.latitude, report.longitude], { icon: customIcon })
+                        .addTo(mapInstance.current)
+                        .bindPopup(`<b>${report.location}</b><br>Status: ${report.status}`);
+                }
+            });
+        }
+    }, [loading, zoneReports]);
 
     const getStatusIcon = (status) => {
         switch (status) {
             case 'Resolved': return <CheckCircle className="text-emerald-500" size={18} />;
-            case 'In Progress': return <RefreshCcw className="text-indigo-500 animate-spin-slow" size={18} />;
-            case 'Pending': return <Clock className="text-amber-500" size={18} />;
-            default: return <Clock size={18} />;
+            case 'In Progress': return <RefreshCcw className="text-indigo-500 animate-spin" size={18} />;
+            default: return <Clock className="text-amber-500" size={18} />;
         }
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="relative">
-                    <Loader2 className="w-16 h-16 text-[var(--accent-green)] animate-spin" />
-                    <div className="absolute inset-0 bg-[var(--accent-leaf)]/20 blur-xl animate-pulse" />
-                </div>
+            <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+                <Loader2 className="w-12 h-12 text-[var(--accent-green)] animate-spin" />
             </div>
         );
     }
 
-    const { 
-        stats = { total: 0, resolved: 0, pending: 0, inProgress: 0 }, 
-        recentReports = [], 
-        user: userData = { ecoCredits: 0, rank: 'Seedling' } 
-    } = data || {};
+    const { stats = { total: 0, resolved: 0, pending: 0, inProgress: 0 }, recentReports = [] } = userData || {};
 
     return (
-        <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-slide-up text-[var(--text-main)]">
-            {/* Nature Greeting */}
-            <div className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center space-x-5">
-                    <div className="w-20 h-20 bg-gradient-to-tr from-[var(--accent-green)] to-[var(--accent-leaf)] rounded-[2.5rem] flex items-center justify-center text-white shadow-xl border border-white/20 font-['Playfair+Display'] text-3xl font-black">
-                        {user?.name?.charAt(0) || 'C'}
+        <div className="pt-28 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-slide-up">
+            
+            {/* 1. Hero Header */}
+            <div className="glass-card p-10 mb-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--accent-green)]/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+                
+                <div className="relative z-10 flex items-center gap-8">
+                    <div className="w-24 h-24 bg-gradient-to-tr from-[var(--accent-green)] to-[var(--accent-leaf)] rounded-[2.5rem] flex items-center justify-center text-4xl text-white shadow-2xl border-4 border-white/20 font-['Playfair_Display']">
+                        {user?.name?.charAt(0) || 'G'}
                     </div>
                     <div>
-                        <h1 className="text-4xl font-black tracking-tighter uppercase font-['Playfair+Display']">
-                            Greetings, <span className="text-[var(--accent-green)] dark:text-[var(--accent-leaf)]">{user?.name}</span>
+                        <h1 className="text-5xl font-black tracking-tighter font-['Playfair_Display'] uppercase leading-none text-[var(--text-primary)]">
+                            Welcome, <span className="text-[var(--accent-green)]">{user?.name?.split(' ')[0]}</span>
                         </h1>
-                        <p className="text-[var(--text-muted)] font-bold uppercase tracking-widest text-[10px] mt-1 flex items-center gap-2">
-                             Zone: {user?.zone || 'Region-A'} <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Status: Active
-                             <span className="mx-2 text-[var(--border-color)]">|</span>
-                             <span className="text-[var(--accent-green)] font-black">{userData?.rank || 'Level 1'}</span>
+                        <p className="text-[var(--text-muted)] mt-5 font-black uppercase tracking-[0.3em] text-[10px] flex items-center gap-3">
+                            <Activity size={14} className="animate-pulse text-[var(--accent-green)]" />
+                            Eco-Citizen Level: <span className="text-[var(--accent-green)]">{userData?.user?.rank || 'SEEDLING'}</span>
                         </p>
                     </div>
                 </div>
-                
-                <button 
-                    onClick={() => navigate('/citizen/report')}
-                    className="eco-button group"
-                >
-                    <Leaf size={22} className="group-hover:rotate-12 transition-transform duration-300" />
-                    <span className="font-black tracking-[0.1em]">NEW REPORT</span>
-                </button>
+
+                <div className="relative z-10 flex gap-4">
+                    <div className="stat-card-nature p-6 min-w-[140px] border-none bg-white/40 shadow-inner">
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Eco Credits</span>
+                        <span className="text-3xl font-black text-[var(--accent-green)] mt-2"><CountUp end={userData?.user?.ecoCredits || 0} /></span>
+                    </div>
+                    <button 
+                        onClick={() => navigate('/citizen/submit')}
+                        className="eco-button h-full px-10 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 group hover:scale-105 transition-all"
+                    >
+                        <Plus size={24} className="group-hover:rotate-90 transition-transform duration-500" />
+                        <span className="text-[10px] tracking-[0.2em] uppercase font-black">Report Waste</span>
+                    </button>
+                </div>
             </div>
 
-            {error && (
-                <div className="mb-8 p-6 bg-rose-500/10 border border-rose-500/20 rounded-[2rem] flex items-center space-x-4 text-rose-600 dark:text-rose-400">
-                    <AlertCircle size={24} />
-                    <p className="font-bold">{error}</p>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                {/* Main Intel Panel */}
-                <div className="lg:col-span-8 space-y-10">
-                    <div className="leaf-card relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px]" />
-                        
-                        <div className="flex items-center justify-between mb-10 border-b border-[var(--border-color)] pb-6">
-                            <h2 className="text-2xl font-black tracking-tighter uppercase flex items-center gap-4">
-                                <Activity className="text-[var(--accent-green)]" />
-                                Your Impact
-                            </h2>
+            {/* 2. Content Grid */}
+            <div className="grid grid-cols-12 gap-10">
+                
+                {/* Statistics Row (Mobile: full, Desktop: span 8) */}
+                <div className="col-span-12 lg:col-span-8 space-y-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className="stat-card-nature p-8 group border-none bg-white/60">
+                            <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 mb-6 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500">
+                                <Activity size={28} />
+                            </div>
+                            <span className="text-4xl font-black text-[var(--text-primary)]"><CountUp end={stats.total} /></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-2">Total Reports</span>
+                            <div className="accent-line bg-emerald-500" />
                         </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
-                            <Link to="/citizen/my-reports" className="stat-card-nature group p-6 hover:shadow-2xl">
-                                <span className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest block mb-1">Total Reports</span>
-                                <span className="text-4xl font-black font-['Playfair+Display'] text-[var(--text-primary)]"><CountUp end={stats.total} /></span>
-                                <div className="accent-line bg-[var(--accent-green)]" />
-                            </Link>
-                            
-                            <Link to="/citizen/my-reports?status=Resolved" className="stat-card-nature p-6">
-                                <span className="text-emerald-600/60 dark:text-emerald-400/60 text-[10px] font-black uppercase tracking-widest block mb-1">Resolved</span>
-                                <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400 font-['Playfair+Display']"><CountUp end={stats.resolved} /></span>
-                                <div className="accent-line bg-emerald-500" />
-                            </Link>
-
-                            <Link to="/citizen/my-reports?status=Pending" className="stat-card-nature p-6">
-                                <span className="text-amber-600/60 dark:text-amber-400/60 text-[10px] font-black uppercase tracking-widest block mb-1">Pending</span>
-                                <span className="text-4xl font-black text-amber-600 dark:text-amber-400 font-['Playfair+Display']"><CountUp end={stats.pending} /></span>
-                                <div className="accent-line bg-amber-500" />
-                            </Link>
-
-                            <Link to="/citizen/my-reports?status=In Progress" className="stat-card-nature p-6">
-                                <span className="text-indigo-600/60 dark:text-indigo-400/60 text-[10px] font-black uppercase tracking-widest block mb-1">In Progress</span>
-                                <span className="text-4xl font-black text-indigo-600 dark:text-indigo-400 font-['Playfair+Display']"><CountUp end={stats.inProgress} /></span>
-                                <div className="accent-line bg-indigo-500" />
-                            </Link>
-
-                            <Link to="/citizen/leaderboard" className="stat-card-nature p-6 bg-[var(--accent-green)]/5 border-[var(--accent-green)]/20">
-                                <span className="text-[var(--accent-green)] text-[10px] font-black uppercase tracking-widest block mb-1">Eco-Credits</span>
-                                <span className="text-4xl font-black text-[var(--accent-green)] font-['Playfair+Display']"><CountUp end={userData?.ecoCredits || 0} /></span>
-                                <div className="accent-line bg-[var(--accent-green)]" />
-                            </Link>
+                        <div className="stat-card-nature p-8 group border-none bg-white/60">
+                            <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 mb-6 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500">
+                                <CheckCircle size={28} />
+                            </div>
+                            <span className="text-4xl font-black text-[var(--text-primary)]"><CountUp end={stats.resolved} /></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-2">Resolved</span>
+                            <div className="accent-line bg-blue-500" />
+                        </div>
+                        <div className="stat-card-nature p-8 group border-none bg-white/60">
+                            <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 mb-6 group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">
+                                <Clock size={28} />
+                            </div>
+                            <span className="text-4xl font-black text-[var(--text-primary)]"><CountUp end={stats.pending + stats.inProgress} /></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-2">Active Tasks</span>
+                            <div className="accent-line bg-amber-500" />
                         </div>
                     </div>
 
-                    {/* Recent Feed */}
-                    <div className="leaf-card border-emerald-500/5 shadow-xl relative overflow-hidden">
-                        <div className="flex items-center justify-between mb-8 border-b border-[var(--border-color)] pb-6">
-                             <h2 className="text-2xl font-black tracking-tighter uppercase flex items-center gap-4">
-                                <MapPin className="text-[var(--accent-earth)]" />
-                                Recent Reports
+                    {/* Recent Reports List */}
+                    <div className="leaf-card border-none shadow-2xl relative overflow-hidden bg-white/80">
+                        <div className="flex items-center justify-between mb-10 border-b border-[var(--border-color)] pb-8">
+                             <h2 className="text-3xl font-black tracking-tighter uppercase flex items-center gap-4 font-['Playfair_Display'] text-[var(--text-primary)]">
+                                <FileText className="text-[var(--accent-green)]" size={32} />
+                                Recent Activity
                              </h2>
-                             <Link 
-                                to="/citizen/my-reports"
-                                className="text-xs font-black tracking-widest text-[var(--accent-green)] hover:text-[var(--accent-leaf)] uppercase flex items-center gap-2 group/all transition-colors"
-                             >
-                                 VIEW ALL <RefreshCcw size={14} className="group-hover/all:rotate-180 transition-transform duration-700" />
+                             <Link to="/citizen/reports" className="text-[10px] font-black tracking-widest text-[var(--accent-green)] hover:bg-[var(--accent-green)] hover:text-white uppercase bg-[var(--accent-green)]/5 px-8 py-3 rounded-full border border-[var(--accent-green)]/20 transition-all">
+                                 History
                              </Link>
                         </div>
                         
                         <div className="space-y-4">
                             {recentReports.length > 0 ? (
                                 recentReports.map((report) => (
-                                    <div key={report._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-[var(--bg-secondary)]/50 rounded-[2rem] border border-[var(--border-color)] hover:border-[var(--accent-leaf)]/30 transition-all group gap-4">
+                                    <div key={report._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-[var(--bg-secondary)]/40 rounded-[2.5rem] border border-[var(--border-color)] hover:border-[var(--accent-green)]/40 transition-all group gap-4">
                                         <div className="flex items-center space-x-6">
-                                            <div className="w-14 h-14 bg-white/40 dark:bg-black/20 rounded-2xl flex items-center justify-center border border-[var(--border-color)] group-hover:bg-[var(--accent-leaf)]/10 transition-colors">
-                                                <Leaf size={24} className="text-[var(--accent-green)]" />
+                                            <div className="w-16 h-16 bg-white dark:bg-black/20 rounded-2xl flex items-center justify-center border border-[var(--border-color)] group-hover:bg-[var(--accent-green)]/10 transition-colors">
+                                                <Recycle size={28} className="text-[var(--accent-green)]" />
                                             </div>
                                             <div>
-                                                <span className="font-bold text-[var(--text-primary)] tracking-tight text-lg block">{report.location}</span>
+                                                <span className="font-black text-[var(--text-primary)] tracking-tight text-xl block leading-tight">{report.location}</span>
                                                 <span className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest mt-1 block italic">{new Date(report.createdAt).toLocaleDateString()}</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center space-x-3 bg-white/60 dark:bg-black/30 px-5 py-2.5 rounded-2xl border border-[var(--border-color)]">
+                                        <div className="flex items-center space-x-3 bg-white/60 dark:bg-black/40 px-6 py-3 rounded-2xl border border-[var(--border-color)] shadow-sm">
                                             {getStatusIcon(report.status)}
-                                            <span className="font-bold text-[var(--text-primary)] text-[10px] tracking-widest uppercase">{report.status}</span>
+                                            <span className="font-black text-[var(--text-primary)] text-[10px] tracking-widest uppercase">{report.status}</span>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-20 bg-[var(--bg-secondary)]/30 rounded-[3rem] border-2 border-dashed border-[var(--border-color)]">
-                                    <ShieldCheck size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-50" />
-                                    <p className="text-[var(--text-muted)] font-bold uppercase tracking-widest">No reports found.</p>
+                                <div className="text-center py-20 bg-[var(--bg-secondary)]/20 rounded-[3rem] border-2 border-dashed border-[var(--border-color)]">
+                                    <ShieldCheck size={64} className="text-[var(--text-muted)] mx-auto mb-6 opacity-40" />
+                                    <p className="text-[12px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em]">No cleanups reported yet.</p>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Sidebar */}
-                <div className="lg:col-span-4 space-y-10">
-                    <div className="leaf-card bg-gradient-to-br from-[var(--accent-green)] to-[var(--accent-leaf)] text-white shadow-2xl relative overflow-hidden group">
+                {/* Right Sidebar: Gamification & Insights (col-span-4) */}
+                <div className="col-span-12 lg:col-span-4 space-y-10">
+                    
+                    {/* Progression Card */}
+                    <div className="leaf-card p-10 bg-gradient-to-br from-[var(--bg-secondary)] to-white border-none shadow-2xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-green)]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                        
                         <div className="relative z-10">
-                            <Sparkles className="text-emerald-200 mb-6 group-hover:scale-110 transition-transform duration-500" size={48} />
-                            <h3 className="text-2xl font-black tracking-tighter uppercase mb-4 leading-tight">Your Impact Level</h3>
-                            <p className="text-emerald-50/80 leading-relaxed font-medium mb-8 text-sm italic">
-                                &ldquo;Nature is not a place to visit. It is home.&rdquo; - Your reports are making a difference.
-                            </p>
-                            <div className="p-5 bg-white/20 rounded-2xl border border-white/10 flex items-center gap-4 hover:bg-white/30 transition-colors">
-                                <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                                    <Recycle className="text-[var(--accent-green)]" size={28} />
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="w-16 h-16 bg-[var(--accent-green)]/10 rounded-2xl flex items-center justify-center text-[var(--accent-green)] group-hover:scale-110 transition-transform duration-500">
+                                    <Trophy size={36} />
                                 </div>
-                                <div>
-                                    <span className="text-emerald-100 text-[10px] font-black uppercase tracking-widest block">Impact Level</span>
-                                    <p className="font-black text-xl uppercase tracking-tight">Eco-Guardian</p>
+                                <div className="text-right">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Citizen Rank</span>
+                                    <p className="text-2xl font-black uppercase tracking-tighter text-[var(--accent-green)] font-['Playfair_Display']">{userData?.user?.rank || 'SEEDLING'}</p>
                                 </div>
                             </div>
+                            
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Next Level Progress</span>
+                                    <span className="text-xs font-black text-[var(--accent-green)]">{userData?.user?.ecoCredits % 100} / 100 XP</span>
+                                </div>
+                                <div className="w-full h-4 bg-[var(--accent-green)]/10 rounded-full overflow-hidden border border-[var(--accent-green)]/10 p-0.5">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-[var(--accent-green)] to-[var(--accent-leaf)] rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(45,106,79,0.3)]"
+                                        style={{ width: `${userData?.user?.ecoCredits % 100}%` }}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-[var(--text-muted)] italic leading-relaxed pt-2 leading-tight">
+                                    &ldquo;Sustainability is no longer about doing less harm. It&apos;s about doing more good.&rdquo;
+                                </p>
+                            </div>
                         </div>
-                        <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-[100px] group-hover:scale-110 transition-transform duration-1000" />
                     </div>
-                    
-                    <div className="leaf-card group text-center border-dashed">
-                         <div className="inline-block p-5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 mb-6 group-hover:bg-[var(--accent-green)] group-hover:text-white transition-all">
-                            <Activity size={32} />
-                         </div>
-                         <h4 className="font-black tracking-tighter uppercase text-[var(--text-primary)] mb-2">Environment Stats</h4>
-                         <p className="text-[var(--text-muted)] text-sm mb-8">View your local area&apos;s waste and recycling statistics.</p>
-                         <button className="w-full py-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl font-black text-[10px] tracking-[0.2em] uppercase hover:border-[var(--accent-green)] transition-all active:scale-95">
-                             VIEW ALL STATS
-                         </button>
+
+                    {/* Community Hotspot Map */}
+                    <div className="leaf-card p-8 border-none bg-white shadow-2xl space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-3 text-[var(--text-primary)]">
+                                <MapPin size={18} className="text-[var(--accent-earth)]" />
+                                Community Map
+                            </h3>
+                            <span className="px-4 py-1.5 bg-[var(--accent-earth)]/10 text-[var(--accent-earth)] rounded-full text-[9px] font-black tracking-widest uppercase">Zone {userData?.user?.zone || 'Alpha'}</span>
+                        </div>
+                        <div 
+                            ref={mapRef} 
+                            className="w-full h-60 rounded-[2.5rem] border border-[var(--border-color)] shadow-inner z-0 overflow-hidden grayscale hover:grayscale-0 transition-all duration-1000 cursor-crosshair"
+                        />
+                        <div className="flex items-center gap-4 p-5 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--border-color)]">
+                             <Activity size={20} className="text-[var(--accent-green)]" />
+                             <div className="flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest">Neighborhood Intel</p>
+                                <button onClick={() => navigate('/citizen/stats')} className="text-[9px] font-bold text-[var(--accent-leaf)] hover:underline uppercase">Full Analytics</button>
+                             </div>
+                        </div>
                     </div>
+
+                    {/* Reward QuickHub */}
+                    <div className="leaf-card p-10 bg-gradient-to-tr from-[var(--bg-secondary)] to-white border-none shadow-2xl">
+                        <div className="flex items-center justify-between mb-8">
+                             <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-3 text-[var(--text-primary)]">
+                                <Star size={18} className="text-amber-500 fill-amber-500" />
+                                Rewards Hub
+                             </h3>
+                             <div className="flex items-center gap-2">
+                                <span className="text-[var(--accent-green)] font-black text-lg">{userData?.user?.ecoCredits || 0}</span>
+                                <span className="text-[var(--text-muted)] text-[9px] font-bold uppercase tracking-widest">Credits</span>
+                             </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            {availableRewards.slice(0, 2).map(reward => (
+                                <div key={reward._id} className="flex items-center gap-5 p-5 bg-white/60 border border-[var(--border-color)] rounded-[2rem] hover:border-[var(--accent-green)] transition-all group cursor-pointer shadow-sm hover:shadow-md">
+                                    <div className="text-3xl grayscale group-hover:grayscale-0 transition-all transform group-hover:scale-110 duration-500">{reward.icon}</div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-black text-[11px] tracking-tight uppercase truncate leading-none text-[var(--text-primary)]">{reward.name}</p>
+                                        <div className="flex items-center justify-between mt-2">
+                                            <span className="text-[10px] font-black text-[var(--accent-leaf)]">{reward.points} CR</span>
+                                            <button onClick={() => handleRedeem(reward)} className="text-[10px] font-black text-[var(--accent-green)] hover:scale-110 transition-transform uppercase tracking-widest">Redeem</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            <Link to="/citizen/profile" className="block text-center text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] hover:text-[var(--accent-green)] pt-6 border-t border-[var(--border-color)] mt-6 transition-colors opacity-60">
+                                Browse All Rewards
+                            </Link>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>

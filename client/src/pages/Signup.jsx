@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Lock, Phone, MapPin, ArrowRight, Leaf } from 'lucide-react';
+import { User, Mail, Lock, Phone, MapPin, ArrowRight, Leaf, Shield } from 'lucide-react';
+import NatureBackground from '../components/NatureBackground';
 
 const Signup = () => {
     const [formData, setFormData] = useState({
@@ -24,8 +25,12 @@ const Signup = () => {
         setError('');
         setIsLoading(true);
         try {
-            await signup(formData);
-            navigate('/dashboard');
+            const data = await signup(formData);
+            const role = data.user?.role || 'citizen';
+            
+            if (role === 'admin') navigate('/admin');
+            else if (role === 'collector') navigate('/collector');
+            else navigate('/citizen');
         } catch (err) {
             console.error('Signup Error:', err);
             let message = 'Signup failed. Please check your connection.';
@@ -34,6 +39,7 @@ const Signup = () => {
             else if (err.code === 'auth/invalid-email') message = 'Invalid email format.';
             else if (err.code === 'auth/operation-not-allowed') message = 'Email/Password auth is not enabled in Firebase. Please contact support.';
             else if (err.response?.data?.message) message = err.response.data.message;
+            else if (err.message) message = err.message;
             setError(message);
         } finally {
             setIsLoading(false);
@@ -41,170 +47,175 @@ const Signup = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden text-[var(--text-primary)]">
-            <div className="max-w-2xl w-full animate-slide-up relative z-10">
-                <div className="leaf-card relative overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-[var(--accent-green)]/30" />
+        <div className="min-h-screen flex items-center justify-center py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-[var(--bg-primary)]">
+            <NatureBackground />
+            
+            <div className="max-w-4xl w-full animate-slide-up relative z-10">
+                <div className="bg-white p-4 rounded-[4rem] shadow-2xl transform transition-all duration-700">
+                    <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] p-12 rounded-[3.5rem] relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-[var(--accent-green)]/5 to-transparent" />
+                        
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16 relative">
+                            <div className="space-y-2">
+                                <h2 className="text-5xl font-black tracking-tighter text-[var(--accent-green)] font-['Playfair_Display']">Join Us</h2>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)]">Become a Guardian of the Ecosystem</p>
+                            </div>
+                            <div className="flex -space-x-4">
+                                <div className="w-16 h-16 bg-[var(--accent-green)] rounded-2xl flex items-center justify-center text-white shadow-xl rotate-[-10deg] hover:rotate-0 transition-transform">
+                                    <Leaf size={32} fill="white" />
+                                </div>
+                                <div className="w-16 h-16 bg-[var(--accent-leaf)] rounded-2xl flex items-center justify-center text-white shadow-xl rotate-[10deg] hover:rotate-0 transition-transform">
+                                    <Shield size={32} fill="white" />
+                                </div>
+                            </div>
+                        </div>
 
-                    <div className="flex flex-col md:flex-row items-center justify-between mb-12 pb-10 border-b border-[var(--border-color)]">
-                        <div className="text-center md:text-left mb-8 md:mb-0">
-                            <h2 className="text-4xl font-black tracking-tighter font-['Playfair+Display'] uppercase text-[var(--text-primary)]">Sign Up</h2>
-                            <p className="mt-2 text-[var(--text-muted)] font-black uppercase tracking-[0.2em] text-[10px] italic">Join our network for a cleaner environment</p>
-                        </div>
-                        <div className="w-20 h-20 bg-[var(--accent-green)]/10 text-[var(--accent-green)] rounded-3xl flex items-center justify-center border border-[var(--accent-green)]/20">
-                            <Leaf size={40} />
-                        </div>
+                        <form className="space-y-12" onSubmit={onSubmit}>
+                            {error && (
+                                <div className="bg-rose-500/10 text-rose-600 p-5 rounded-2xl text-[11px] font-bold border border-rose-500/20 text-center uppercase tracking-widest animate-shake">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                                {/* Name Input */}
+                                <div className="group space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)]/60 ml-1">Full Identity</label>
+                                    <div className="relative">
+                                        <User className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
+                                        <input
+                                            name="name"
+                                            type="text"
+                                            required
+                                            className="earth-input pl-14 h-14"
+                                            placeholder="Your Name"
+                                            value={formData.name}
+                                            onChange={onChange}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Email Input */}
+                                <div className="group space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)]/60 ml-1">Email Link</label>
+                                    <div className="relative">
+                                        <Mail className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
+                                        <input
+                                            name="email"
+                                            type="email"
+                                            required
+                                            className="earth-input pl-14 h-14"
+                                            placeholder="your@email.com"
+                                            value={formData.email}
+                                            onChange={onChange}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Password Input */}
+                                <div className="group space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)]/60 ml-1">Secure Key</label>
+                                    <div className="relative">
+                                        <Lock className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
+                                        <input
+                                            name="password"
+                                            type="password"
+                                            required
+                                            minLength="8"
+                                            className="earth-input pl-14 h-14"
+                                            placeholder="8+ characters"
+                                            value={formData.password}
+                                            onChange={onChange}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Phone Input */}
+                                <div className="group space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)]/60 ml-1">Comms Number</label>
+                                    <div className="relative">
+                                        <Phone className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
+                                        <input
+                                            name="phone"
+                                            type="text"
+                                            required
+                                            className="earth-input pl-14 h-14"
+                                            placeholder="+XX XXXXXXXXXX"
+                                            value={formData.phone}
+                                            onChange={onChange}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Zone Select */}
+                                <div className="group space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)]/60 ml-1">Operational Zone</label>
+                                    <div className="relative">
+                                        <MapPin className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
+                                        <select
+                                            name="zone"
+                                            required
+                                            className="earth-input pl-14 h-14 appearance-none cursor-pointer uppercase text-[10px] tracking-[0.2em]"
+                                            value={formData.zone}
+                                            onChange={onChange}
+                                        >
+                                            <option value="">SCANNING REGIONS...</option>
+                                            <option value="Alpha">ALPHA SECTOR</option>
+                                            <option value="Beta">BETA SECTOR</option>
+                                            <option value="Gamma">GAMMA SECTOR</option>
+                                            <option value="Delta">DELTA SECTOR</option>
+                                            <option value="Epsilon">EPSILON SECTOR</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Role Select */}
+                                <div className="group space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)]/60 ml-1">Guardian Role</label>
+                                    <div className="relative">
+                                        <Shield className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
+                                        <select
+                                            name="role"
+                                            required
+                                            className="earth-input pl-14 h-14 appearance-none cursor-pointer uppercase text-[10px] tracking-[0.2em]"
+                                            value={formData.role}
+                                            onChange={onChange}
+                                        >
+                                            <option value="citizen">CITIZEN</option>
+                                            <option value="collector">COLLECTOR</option>
+                                            <option value="admin">ADMIN</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-8">
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="eco-button w-full h-18 group"
+                                >
+                                    {isLoading ? (
+                                        <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <span className="text-sm tracking-[0.4em] font-black">INITIALIZE ACCOUNT</span>
+                                            <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform duration-500" />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            <div className="text-center pt-8 border-t border-[var(--border-color)]">
+                                <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.2em]">
+                                    Already Registered? {' '}
+                                    <Link to="/login" className="text-[var(--accent-green)] hover:text-[var(--accent-leaf)] underline underline-offset-8">
+                                        GO TO LOGIN
+                                    </Link>
+                                </p>
+                            </div>
+                        </form>
                     </div>
-
-                    <form className="space-y-10" onSubmit={onSubmit}>
-                        {error && (
-                            <div className="bg-rose-500/10 text-rose-600 dark:text-rose-400 p-5 rounded-2xl text-xs font-bold border border-rose-500/20 text-center animate-shake uppercase tracking-widest">
-                                {error}
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
-                            <div className="space-y-3 group">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Full Name</label>
-                                <div className="relative">
-                                    <User className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
-                                    <input
-                                        name="name"
-                                        type="text"
-                                        required
-                                        autoComplete="name"
-                                        className="earth-input pl-14 font-bold tracking-widest text-[11px]"
-                                        placeholder="Your Full Name"
-                                        value={formData.name}
-                                        onChange={onChange}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 group">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Email Address</label>
-                                <div className="relative">
-                                    <Mail className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
-                                    <input
-                                        name="email"
-                                        type="email"
-                                        required
-                                        autoComplete="username"
-                                        className="earth-input pl-14 font-bold tracking-widest text-[11px]"
-                                        placeholder="your@email.com"
-                                        value={formData.email}
-                                        onChange={onChange}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 group">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Password</label>
-                                <div className="relative">
-                                    <Lock className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
-                                    <input
-                                        name="password"
-                                        type="password"
-                                        required
-                                        minLength="8"
-                                        autoComplete="new-password"
-                                        className="earth-input pl-14 font-bold tracking-widest text-[11px]"
-                                        placeholder="8+ characters"
-                                        value={formData.password}
-                                        onChange={onChange}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 group">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Phone Number</label>
-                                <div className="relative">
-                                    <Phone className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
-                                    <input
-                                        name="phone"
-                                        type="text"
-                                        required
-                                        autoComplete="tel"
-                                        className="earth-input pl-14 font-bold tracking-widest text-[11px]"
-                                        placeholder="+91 XXXXX XXXXX"
-                                        value={formData.phone}
-                                        onChange={onChange}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 group">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Zone Selection</label>
-                                <div className="relative">
-                                    <MapPin className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
-                                    <select
-                                        name="zone"
-                                        required
-                                        className="earth-input pl-14 appearance-none font-bold uppercase tracking-widest text-[10px]"
-                                        value={formData.zone}
-                                        onChange={onChange}
-                                    >
-                                        <option value="">SELECT ZONE...</option>
-                                        <option value="Alpha">ALPHA REGION</option>
-                                        <option value="Beta">BETA REGION</option>
-                                        <option value="Gamma">GAMMA REGION</option>
-                                        <option value="Delta">DELTA REGION</option>
-                                        <option value="Epsilon">EPSILON REGION</option>
-                                    </select>
-                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
-                                        <ArrowRight size={14} className="rotate-90" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 group">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-green)] ml-1">Account Role</label>
-                                <div className="relative">
-                                    <User className="absolute top-1/2 -translate-y-1/2 left-5 h-5 w-5 text-[var(--text-muted)] group-focus-within:text-[var(--accent-green)] transition-colors" />
-                                    <select
-                                        name="role"
-                                        required
-                                        className="earth-input pl-14 appearance-none font-bold uppercase tracking-widest text-[10px]"
-                                        value={formData.role}
-                                        onChange={onChange}
-                                    >
-                                        <option value="citizen">CITIZEN</option>
-                                        <option value="collector">COLLECTOR</option>
-                                        <option value="admin">ADMIN</option>
-                                    </select>
-                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
-                                        <ArrowRight size={14} className="rotate-90" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="pt-8">
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="eco-button w-full flex items-center justify-center gap-4 py-6"
-                            >
-                                {isLoading ? (
-                                    <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <>
-                                        <span className="text-xs tracking-[0.3em] font-black uppercase">Create Account</span>
-                                        <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-500" />
-                                    </>
-                                )}
-                            </button>
-                        </div>
-
-                        <div className="text-center pt-8 border-t border-[var(--border-color)]">
-                            <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.2em]">
-                                Already have an account? {' '}
-                                <Link to="/login" className="text-[var(--accent-green)] font-black underline decoration-2 underline-offset-8 decoration-[var(--accent-green)]/20 hover:decoration-[var(--accent-green)] transition-all">
-                                    LOGIN HERE
-                                </Link>
-                            </p>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>

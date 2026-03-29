@@ -1,96 +1,99 @@
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User as UserIcon, FileText, Award, Leaf, Trophy, Truck, Users, Activity } from 'lucide-react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, FileText, Trophy, User, LogOut, Leaf, Share2 } from 'lucide-react';
+
 import ThemeToggle from './ThemeToggle';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
-    const { user, logout } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-    return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--bg-card)]/70 backdrop-blur-xl border-b border-[var(--border-color)] transition-all duration-500">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-20 items-center">
-                    <Link to="/" className="flex items-center space-x-3 group">
-                        <div className="bg-gradient-to-tr from-[var(--accent-green)] to-[var(--accent-leaf)] p-2.5 rounded-2xl text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            <Leaf size={24} />
-                        </div>
-                        <span className="text-2xl font-black text-[var(--text-primary)] tracking-tighter transition-colors font-['Playfair+Display'] uppercase">
-                            CLEAN<span className="text-[var(--accent-green)]">PULSE</span>
-                        </span>
-                    </Link>
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
-                    <div className="flex items-center space-x-6">
-                        <ThemeToggle />
-                        
-                        {!user ? (
-                            <div className="flex items-center space-x-4">
-                                <Link to="/login" className="text-[var(--text-muted)] hover:text-[var(--accent-green)] font-black text-xs uppercase tracking-widest transition-colors">Login</Link>
-                                <Link to="/signup" className="eco-button py-2 px-6 text-xs tracking-widest uppercase">Sign Up</Link>
-                            </div>
-                        ) : (
-                            <div className="flex items-center space-x-8">
-                                <Link to="/dashboard" className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] font-black text-xs uppercase tracking-widest transition-colors">
-                                    <UserIcon size={18} />
-                                    <span>Dashboard</span>
-                                </Link>
-                                
-                                {user.role === 'citizen' && (
-                                    <>
-                                        <Link to="/citizen/my-reports" className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] font-black text-xs uppercase tracking-widest transition-colors">
-                                            <FileText size={18} />
-                                            <span>Reports</span>
-                                        </Link>
-                                        <Link to="/citizen/leaderboard" className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] font-black text-xs uppercase tracking-widest transition-colors">
-                                            <Trophy size={18} />
-                                            <span>Leaderboard</span>
-                                        </Link>
-                                        <Link to="/citizen/profile" className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] font-black text-xs uppercase tracking-widest transition-colors">
-                                            <Award size={18} />
-                                            <span>Profile</span>
-                                        </Link>
-                                    </>
-                                )}
+  const getNavLinks = () => {
+    const role = user?.role;
+    const links = [
+      { 
+        name: 'DASHBOARD', 
+        path: role === 'admin' ? '/admin' : role === 'collector' ? '/collector' : '/citizen', 
+        icon: <LayoutDashboard size={18} /> 
+      },
+      { 
+        name: 'ECOSYSTEM', 
+        path: '/ecosystem', 
+        icon: <Share2 size={18} /> 
+      },
+    ];
 
-                                {user.role === 'collector' && (
-                                    <>
-                                        <Link to="/collector/pickups" className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] font-black text-xs uppercase tracking-widest transition-colors">
-                                            <Truck size={18} />
-                                            <span>Pickups</span>
-                                        </Link>
-                                        <Link to="/collector/profile" className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] font-black text-xs uppercase tracking-widest transition-colors">
-                                            <Award size={18} />
-                                            <span>Profile</span>
-                                        </Link>
-                                    </>
-                                )}
+    if (role === 'citizen') {
+      links.push(
+        { name: 'REPORTS', path: '/citizen/reports', icon: <FileText size={18} /> },
+        { name: 'LEADERBOARD', path: '/leaderboard', icon: <Trophy size={18} /> },
+        { name: 'PROFILE', path: '/citizen/profile', icon: <User size={18} /> }
+      );
+    } else if (role === 'collector') {
+      links.push(
+        { name: 'PICKUPS', path: '/collector/pickups', icon: <FileText size={18} /> },
+        { name: 'PROFILE', path: '/collector/profile', icon: <User size={18} /> }
+      );
+    } else if (role === 'admin') {
+      links.push(
+        { name: 'REPORTS', path: '/admin/reports', icon: <FileText size={18} /> },
+        { name: 'USERS', path: '/admin/users', icon: <User size={18} /> }
+      );
+    }
 
-                                {user.role === 'admin' && (
-                                    <>
-                                        <Link to="/admin/reports" className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] font-black text-xs uppercase tracking-widest transition-colors">
-                                            <Activity size={18} />
-                                            <span>Reports</span>
-                                        </Link>
-                                        <Link to="/admin/users" className="flex items-center space-x-2 text-[var(--text-muted)] hover:text-[var(--accent-green)] font-black text-xs uppercase tracking-widest transition-colors">
-                                            <Users size={18} />
-                                            <span>Users</span>
-                                        </Link>
-                                    </>
-                                )}
+    return links;
+  };
 
-                                <button 
-                                    onClick={logout}
-                                    className="flex items-center space-x-1 text-rose-500 hover:text-rose-600 font-black text-xs uppercase tracking-widest transition-colors"
-                                >
-                                    <LogOut size={18} />
-                                    <span>Logout</span>
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </nav>
-    );
+  const navLinks = getNavLinks();
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--bg-primary)]/80 backdrop-blur-md px-8 py-4 flex justify-between items-center border-b border-[var(--border-color)] transition-all duration-300">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-[var(--accent-green)] rounded-xl text-white shadow-lg shadow-[var(--accent-green)]/20">
+          <Leaf size={24} fill="white" />
+        </div>
+        <Link to="/" className="text-2xl font-black text-[var(--accent-green)] tracking-widest uppercase font-['Playfair_Display']">
+          CLEANPULSE
+        </Link>
+      </div>
+      
+      <div className="flex items-center gap-8">
+        <div className="hidden lg:flex items-center gap-8">
+          {navLinks.map((link) => (
+            <Link 
+              key={link.name} 
+              to={link.path}
+              className={`flex items-center gap-2 text-[10px] font-black tracking-[0.2em] transition-colors hover:text-[var(--accent-leaf)] ${
+                location.pathname === link.path ? 'text-[var(--accent-green)]' : 'text-[var(--text-muted)]'
+              }`}
+            >
+              {link.icon}
+              {link.name}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-6 border-l border-[var(--border-color)] pl-8">
+          <NotificationBell />
+          <ThemeToggle />
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-rose-500 hover:text-rose-600 text-[10px] font-black tracking-[0.2em] transition-all"
+          >
+            <LogOut size={18} />
+            EXIT
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
 };
 
 export default Navbar;
