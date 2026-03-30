@@ -14,3 +14,17 @@ export async function analyzeWaste(item) {
 
   return data;
 }
+
+export async function analyzeWasteImage(formData) {
+  const res = await fetch("/api/ai/analyze/image", {
+    method: "POST",
+    body: formData // No Content-Type header needed for FormData
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "Scanning failed. Check image format.");
+  }
+
+  return data;
+}

@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import api from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import { Leaf, CheckCircle, Clock, RefreshCcw, MapPin, AlertCircle, Loader2, Activity, ShieldCheck, Recycle, Sparkles, Award, Star, Plus, FileText, Trophy } from 'lucide-react';
+import { useSocket } from '../../context/SocketContext';
 
 const CountUp = ({ end, duration = 2000 }) => {
     const [count, setCount] = useState(0);
@@ -27,6 +28,7 @@ const CountUp = ({ end, duration = 2000 }) => {
 
 const CitizenDashboard = () => {
     const { user, token } = useAuth();
+    const { on } = useSocket();
     const navigate = useNavigate();
     const [userData, setUserData] = useState(null);
     const [zoneReports, setZoneReports] = useState([]);
@@ -37,34 +39,53 @@ const CitizenDashboard = () => {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [dashRes, rewardRes] = await Promise.all([
-                    api.get('/dashboard/citizen', { headers: { 'x-auth-token': token } }),
-                    api.get('/rewards/items', { headers: { 'x-auth-token': token } })
-                ]);
-                
-                setUserData(dashRes.data);
-                setAvailableRewards(rewardRes.data || []);
-                
-                const currentZone = dashRes.data.user?.zone || user?.zone;
-                if (currentZone) {
-                    const reportsRes = await api.get(`/reports?zone=${currentZone}`, {
-                        headers: { 'x-auth-token': token }
-                    });
-                    setZoneReports(reportsRes.data.reports || []);
-                }
-            } catch (err) {
-                setError(err.response?.data?.message || err.message || 'Failed to load dashboard.');
-                console.error(err);
-            } finally {
-                setLoading(false);
+    const fetchData = async () => {
+        try {
+            const [dashRes, rewardRes] = await Promise.all([
+                api.get('/dashboard/citizen', { headers: { 'x-auth-token': token } }),
+                api.get('/rewards/items', { headers: { 'x-auth-token': token } })
+            ]);
+            
+            setUserData(dashRes.data);
+            setAvailableRewards(rewardRes.data || []);
+            
+            const currentZone = dashRes.data.user?.zone || user?.zone;
+            if (currentZone) {
+                const reportsRes = await api.get(`/reports?zone=${currentZone}`, {
+                    headers: { 'x-auth-token': token }
+                });
+                setZoneReports(reportsRes.data.reports || []);
             }
-        };
+        } catch (err) {
+            setError(err.response?.data?.message || err.message || 'Failed to load dashboard.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         if (token) fetchData();
     }, [token, user?.zone]);
+
+    // Listen for real-time status updates on user's reports
+    useEffect(() => {
+        const cleanup = on('STATUS_UPDATED', (data) => {
+            console.log('[Socket] Status update received:', data);
+            
+            // Refresh data to get new counts and credits
+            fetchData();
+
+            // Browser Notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(`Report ${data.status}!`, {
+                    body: `Your report at ${data.location} has been ${data.status.toLowerCase()}.`,
+                    icon: '/logo.png'
+                });
+            }
+        });
+        return cleanup;
+    }, [on, token]);
 
     const handleRedeem = async (reward) => {
         if (userData?.user?.ecoCredits < reward.points) {

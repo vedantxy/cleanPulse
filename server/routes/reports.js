@@ -28,6 +28,17 @@ router.post('/', auth, async (req, res) => {
 
         const report = await newReport.save();
         
+        // --- REAL-TIME EMIT ---
+        try {
+            const { getIo } = require('../socket');
+            const io = getIo();
+            // Notify collectors in this zone
+            io.to(`zone_${report.zone}`).emit('NEW_REPORT', report);
+        } catch (socketErr) {
+            console.error('[Socket] New report emit failed:', socketErr.message);
+        }
+        // ----------------------
+
         // Gamification & Badges should be non-blocking
         try {
             // Award credits for reporting (+10)
@@ -216,6 +227,21 @@ router.put('/:id/status', auth, async (req, res) => {
 
         report.status = status;
         await report.save();
+
+        // --- REAL-TIME EMIT ---
+        try {
+            const { getIo } = require('../socket');
+            const io = getIo();
+            // Notify the specific citizen
+            io.to(report.citizenId.toString()).emit('STATUS_UPDATED', {
+                reportId: report._id,
+                status: report.status,
+                location: report.location
+            });
+        } catch (socketErr) {
+            console.error('[Socket] Status update emit failed:', socketErr.message);
+        }
+        // ----------------------
 
         // Trigger Notification for Citizen
         try {

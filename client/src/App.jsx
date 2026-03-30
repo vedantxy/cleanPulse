@@ -21,6 +21,8 @@ import Ecosystem from './pages/citizen/Ecosystem';
 import AIChatBot from './components/AIChatBot';
 
 
+import { SocketProvider } from './context/SocketContext';
+
 const ProtectedRoute = ({ children, allowedRole }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="p-8 text-center font-bold">Loading...</div>;
@@ -34,102 +36,111 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   );
 };
 
+const SocketWrapper = ({ children }) => {
+  const { user } = useAuth();
+  return (
+    <SocketProvider user={user}>
+      {children}
+    </SocketProvider>
+  );
+};
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={
-              <>
-                <Navbar />
-                <Home />
-              </>
-            } />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/ecosystem" element={
-              <>
-                <Navbar />
-                <Ecosystem />
-              </>
-            } />
-            
-            {/* Citizen Routes */}
-            <Route path="/citizen" element={
-              <ProtectedRoute allowedRole="citizen">
-                <CitizenDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/citizen/submit" element={
-              <ProtectedRoute allowedRole="citizen">
-                <SubmitReport />
-              </ProtectedRoute>
-            } />
-            <Route path="/citizen/reports" element={
-              <ProtectedRoute allowedRole="citizen">
-                <MyReports />
-              </ProtectedRoute>
-            } />
-            <Route path="/citizen/profile" element={
-              <ProtectedRoute allowedRole="citizen">
-                <CitizenProfile />
-              </ProtectedRoute>
-            } />
-            <Route path="/citizen/stats" element={
-              <ProtectedRoute allowedRole="citizen">
-                <Stats />
-              </ProtectedRoute>
-            } />
-            <Route path="/leaderboard" element={
-              <ProtectedRoute>
-                <Leaderboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                {/* Redirect logic handled within components or based on role */}
-                <Navigate to="/citizen/profile" /> 
-              </ProtectedRoute>
-            } />
-            
-            {/* Collector Routes */}
-            <Route path="/collector" element={
-              <ProtectedRoute allowedRole="collector">
-                <CollectorDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/collector/pickups" element={
-              <ProtectedRoute allowedRole="collector">
-                <CollectorPickups />
-              </ProtectedRoute>
-            } />
-            <Route path="/collector/profile" element={
-              <ProtectedRoute allowedRole="collector">
-                <CollectorProfile />
-              </ProtectedRoute>
-            } />
-            
-            {/* Admin Routes */}
-            <Route path="/admin" element={
-              <ProtectedRoute allowedRole="admin">
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/reports" element={
-              <ProtectedRoute allowedRole="admin">
-                <AdminReports />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/users" element={
-              <ProtectedRoute allowedRole="admin">
-                <AdminUsers />
-              </ProtectedRoute>
-            } />
-          </Routes>
-          <AIChatBot />
-        </Router>
-
+        <SocketWrapper>
+          <Router>
+            <Routes>
+              <Route path="/" element={
+                <>
+                  <Navbar />
+                  <Home />
+                </>
+              } />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/ecosystem" element={
+                <>
+                  <Navbar />
+                  <Ecosystem />
+                </>
+              } />
+              
+              {/* Citizen Routes */}
+              <Route path="/citizen" element={
+                <ProtectedRoute allowedRole="citizen">
+                  <CitizenDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/citizen/submit" element={
+                <ProtectedRoute allowedRole="citizen">
+                  <SubmitReport />
+                </ProtectedRoute>
+              } />
+              <Route path="/citizen/reports" element={
+                <ProtectedRoute allowedRole="citizen">
+                  <MyReports />
+                </ProtectedRoute>
+              } />
+              <Route path="/citizen/profile" element={
+                <ProtectedRoute allowedRole="citizen">
+                  <CitizenProfile />
+                </ProtectedRoute>
+              } />
+              <Route path="/citizen/stats" element={
+                <ProtectedRoute allowedRole="citizen">
+                  <Stats />
+                </ProtectedRoute>
+              } />
+              <Route path="/leaderboard" element={
+                <ProtectedRoute>
+                  <Leaderboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Navigate to="/citizen/profile" /> 
+                </ProtectedRoute>
+              } />
+              
+              {/* Collector Routes */}
+              <Route path="/collector" element={
+                <ProtectedRoute allowedRole="collector">
+                  <CollectorDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/collector/pickups" element={
+                <ProtectedRoute allowedRole="collector">
+                  <CollectorPickups />
+                </ProtectedRoute>
+              } />
+              <Route path="/collector/profile" element={
+                <ProtectedRoute allowedRole="collector">
+                  <CollectorProfile />
+                </ProtectedRoute>
+              } />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute allowedRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/reports" element={
+                <ProtectedRoute allowedRole="admin">
+                  <AdminReports />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/users" element={
+                <ProtectedRoute allowedRole="admin">
+                  <AdminUsers />
+                </ProtectedRoute>
+              } />
+            </Routes>
+            <AIChatBot />
+          </Router>
+        </SocketWrapper>
       </AuthProvider>
     </ThemeProvider>
   );

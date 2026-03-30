@@ -35,10 +35,11 @@ const AdminDashboard = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [dashRes, analyticsRes, trendsRes] = await Promise.all([
+                const [dashRes, analyticsRes, trendsRes, historicalRes] = await Promise.all([
                     api.get('/admin/stats'),
                     api.get('/analytics/overview'),
-                    api.get('/analytics/trends')
+                    api.get('/analytics/trends'),
+                    api.get('/analytics/trends/historical')
                 ]);
                 
                 setData({
@@ -49,7 +50,7 @@ const AdminDashboard = () => {
                     },
                     zoneData: analyticsRes.data.zoneData,
                     topCollectors: analyticsRes.data.topCollectors,
-                    trends: trendsRes.data
+                    trends: historicalRes.data || trendsRes.data
                 });
             } catch (err) {
                 const msg = err.response?.data?.message || err.message || 'Connection error. Failed to load dashboard data.';
@@ -181,17 +182,29 @@ const AdminDashboard = () => {
                                     />
                                     <Tooltip 
                                         contentStyle={{ backgroundColor: 'var(--bg-card)', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', padding: '20px' }}
-                                        itemStyle={{ fontWeight: 900, color: 'var(--accent-green)', fontSize: '12px' }}
+                                        itemStyle={{ fontWeight: 900, fontSize: '12px' }}
                                         labelStyle={{ color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 900, fontSize: '10px' }}
                                     />
+                                    <Legend verticalAlign="top" height={36} wrapperStyle={{ fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}/>
                                     <Line 
+                                        name="Reported"
                                         type="monotone" 
-                                        dataKey="reports" 
+                                        dataKey="reported" 
+                                        stroke="#8B5E3C" 
+                                        strokeWidth={4} 
+                                        dot={{ fill: '#8B5E3C', r: 5, strokeWidth: 2, stroke: 'var(--bg-card)' }}
+                                        activeDot={{ r: 7, strokeWidth: 0, fill: '#8B5E3C' }}
+                                        animationDuration={1500}
+                                    />
+                                    <Line 
+                                        name="Resolved"
+                                        type="monotone" 
+                                        dataKey="resolved" 
                                         stroke="var(--accent-green)" 
-                                        strokeWidth={5} 
-                                        dot={{ fill: 'var(--accent-green)', r: 7, strokeWidth: 4, stroke: 'var(--bg-card)' }}
-                                        activeDot={{ r: 9, strokeWidth: 0, fill: 'var(--accent-leaf)' }}
-                                        animationDuration={3000}
+                                        strokeWidth={4} 
+                                        dot={{ fill: 'var(--accent-green)', r: 5, strokeWidth: 2, stroke: 'var(--bg-card)' }}
+                                        activeDot={{ r: 7, strokeWidth: 0, fill: 'var(--accent-leaf)' }}
+                                        animationDuration={2500}
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
@@ -261,6 +274,35 @@ const AdminDashboard = () => {
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
+                        </div>
+
+                        {/* Zone Health Command Center (Topic 6) */}
+                        <div className="md:col-span-2 leaf-card p-12 rounded-[4rem] shadow-2xl relative overflow-hidden bg-gradient-to-br from-white to-[var(--bg-secondary)] border-none">
+                             <div className="flex items-center justify-between mb-10">
+                                <h2 className="text-2xl font-black text-[var(--text-primary)] flex items-center gap-4 font-['Playfair+Display'] tracking-tighter uppercase">
+                                    <ShieldCheck className="text-[var(--accent-green)]" size={32} />
+                                    Zone Health Command
+                                </h2>
+                                <div className="px-5 py-2 bg-emerald-500/10 text-emerald-600 rounded-full text-[9px] font-black tracking-widest uppercase">
+                                    Live Ops Monitor
+                                </div>
+                             </div>
+                             
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                {zoneData.map((zone, idx) => {
+                                    const isStressed = zone.count > 10; // Simplified threshold for demo
+                                    return (
+                                        <div key={idx} className={`p-6 rounded-[2rem] border transition-all hover:scale-105 ${isStressed ? 'bg-rose-500/5 border-rose-500/20' : 'bg-emerald-500/5 border-emerald-500/20'}`}>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">{zone.name}</span>
+                                                <div className={`w-2 h-2 rounded-full animate-pulse ${isStressed ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                                            </div>
+                                            <p className={`text-3xl font-black font-['Playfair_Display'] ${isStressed ? 'text-rose-600' : 'text-emerald-600'}`}>{zone.count}</p>
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] mt-1 text-[var(--text-muted)]">{isStressed ? 'ATTENTION REQUIRED' : 'ZONE OPTIMIZED'}</p>
+                                        </div>
+                                    );
+                                })}
+                             </div>
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { analyzeWaste } from "../utils/api";
+import { analyzeWaste, analyzeWasteImage } from "../utils/api";
 
 export function useWasteAnalyzer() {
   const [loading, setLoading]     = useState(false);
@@ -10,15 +10,32 @@ export function useWasteAnalyzer() {
     analyzed: 0, recyclable: 0, hazardous: 0, compostable: 0
   });
 
-  async function analyze(item) {
-    if (!item.trim()) return;
+  async function analyze(input) {
+    if (!input) return;
+    
     setLoading(true);
     setError(null);
     setResult(null);
+
     try {
-      const data = await analyzeWaste(item);
+      let data;
+      let historyItem;
+
+      if (input instanceof File) {
+        // Image Analysis
+        const formData = new FormData();
+        formData.append('image', input);
+        data = await analyzeWasteImage(formData);
+        historyItem = { input: "Image Scan", ...data };
+      } else {
+        // Text Analysis
+        if (!input.trim()) return;
+        data = await analyzeWaste(input);
+        historyItem = { input: input, ...data };
+      }
+
       setResult(data);
-      setHistory(prev => [{ input: item, ...data }, ...prev].slice(0, 5));
+      setHistory(prev => [historyItem, ...prev].slice(0, 5));
       setStats(prev => ({
         analyzed:    prev.analyzed + 1,
         recyclable:  prev.recyclable  + (data.category === "Recyclable"  ? 1 : 0),

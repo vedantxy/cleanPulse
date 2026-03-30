@@ -1,8 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../../api/api';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Truck, CheckCircle, Clock, MapPin, Play, Check, ClipboardList, Loader2, AlertCircle, Sparkles, Activity, ShieldCheck, Zap } from 'lucide-react';
+import { Truck, CheckCircle, Clock, MapPin, Play, Check, ClipboardList, Loader2, AlertCircle, Sparkles, Activity, ShieldCheck, Zap, Navigation } from 'lucide-react';
+import { useSocket } from '../../context/SocketContext';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import 'leaflet-routing-machine';
 
 const CountUp = ({ end, duration = 2000 }) => {
     const [count, setCount] = useState(0);
@@ -25,25 +30,88 @@ const CountUp = ({ end, duration = 2000 }) => {
 
 const CollectorDashboard = () => {
     const { user } = useAuth();
+    const { on } = useSocket();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showRoute, setShowRoute] = useState(false);
+    const mapRef = useRef(null);
+    const mapInstance = useRef(null);
+    const routingControl = useRef(null);
+
+    const fetchDashboardData = async () => {
+        try {
+            const res = await api.get('/dashboard/collector');
+            setData(res.data);
+        } catch (err) {
+            const msg = err.response?.data?.message || err.message || 'Failed to connect to the system. Please try again.';
+            setError(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                const res = await api.get('/dashboard/collector');
-                setData(res.data);
-            } catch (err) {
-                const msg = err.response?.data?.message || err.message || 'Failed to connect to the system. Please try again.';
-                setError(msg);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchDashboardData();
     }, []);
+
+    // Map & Routing Logic
+    useEffect(() => {
+        if (!loading && data?.pickups?.length > 0 && mapRef.current) {
+            if (!mapInstance.current) {
+                mapInstance.current = L.map(mapRef.current).setView([data.pickups[0].latitude, data.pickups[0].longitude], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap'
+                }).addTo(mapInstance.current);
+            }
+
+            // Clear markers/routing
+            mapInstance.current.eachLayer((layer) => {
+                if (layer instanceof L.Marker) mapInstance.current.removeLayer(layer);
+            });
+            if (routingControl.current) {
+                mapInstance.current.removeControl(routingControl.current);
+                routingControl.current = null;
+            }
+
+            // Add markers
+            const pendingPickups = data.pickups.filter(p => p.status === 'Pending' || p.status === 'In Progress');
+            pendingPickups.forEach(p => {
+                L.marker([p.latitude, p.longitude])
+                    .addTo(mapInstance.current)
+                    .bindPopup(`<b>${p.location}</b><br>${p.garbageType}`);
+            });
+
+            // Routing
+            if (showRoute && pendingPickups.length >= 2) {
+                const waypoints = pendingPickups.slice(0, 4).map(p => L.latLng(p.latitude, p.longitude));
+                routingControl.current = L.Routing.control({
+                    waypoints,
+                    lineOptions: { styles: [{ color: '#2D6A4F', weight: 6, opacity: 0.8 }] },
+                    createMarker: () => null, // Hide internal routing markers
+                    addWaypoints: false,
+                    routeWhileDragging: false,
+                    show: false // Don't show instructions panel
+                }).addTo(mapInstance.current);
+            }
+        }
+    }, [loading, data, showRoute]);
+
+    // Listen for real-time reports in this zone
+    useEffect(() => {
+        const cleanup = on('NEW_REPORT', (newReport) => {
+            console.log('[Socket] New report received:', newReport);
+            setData(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    stats: { ...prev.stats, pending: prev.stats.pending + 1 },
+                    pickups: [newReport, ...prev.pickups].slice(0, 5)
+                };
+            });
+        });
+        return cleanup;
+    }, [on]);
 
     const handleUpdateStatus = async (id, status) => {
         try {
@@ -121,6 +189,26 @@ const CollectorDashboard = () => {
                         </h2>
                         <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.2em] mt-1 italic">Ready for today&apos;s tasks</p>
                     </div>
+                </div>
+
+                {/* Smart Routing Hub */}
+                <div className="mb-12">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-[10px] font-black text-[var(--accent-leaf)] uppercase tracking-[0.3em] ml-1 flex items-center gap-2">
+                            <Navigation size={14} /> Optimized Tactical Route
+                        </h3>
+                        <button 
+                            onClick={() => setShowRoute(!showRoute)}
+                            className={`px-6 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${showRoute ? 'bg-[var(--accent-green)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-color)]'}`}
+                        >
+                            <Zap size={12} className={showRoute ? 'fill-white' : ''} />
+                            {showRoute ? 'ROUTE ACTIVE' : 'OPTIMIZE ROUTE'}
+                        </button>
+                    </div>
+                    <div 
+                        ref={mapRef} 
+                        className="w-full h-80 rounded-[2.5rem] border-2 border-[var(--bg-card)] shadow-inner overflow-hidden mb-8 z-0 grayscale-[0.5] hover:grayscale-0 transition-all duration-700"
+                    />
                 </div>
 
                 {/* Tactical Pickup Stats */}

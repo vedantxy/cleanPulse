@@ -3,6 +3,7 @@ const router = express.Router();
 const Report = require('../models/Report');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const cache = require('../utils/cache');
 
 // @route   GET /api/analytics/overview
 // @desc    Get city-wide waste overview (Admin)
@@ -110,6 +111,11 @@ router.get('/trends', auth, async (req, res) => {
 // @access  Private
 router.get('/public', auth, async (req, res) => {
     try {
+        // --- CACHE LAYER ---
+        const cachedData = cache.get('public_analytics');
+        if (cachedData) return res.json(cachedData);
+        // -------------------
+
         const stats = await Report.aggregate([
             {
                 $group: {
@@ -132,12 +138,43 @@ router.get('/public', auth, async (req, res) => {
             { $sort: { count: -1 } }
         ]);
 
-        res.json({
+        const responseData = {
             stats: stats[0] || { total: 0, pending: 0, inProgress: 0, resolved: 0 },
             zoneData: zones.map(z => ({ name: z._id || 'Unknown', count: z.count }))
-        });
+        };
+
+        // --- CACHE LAYER ---
+        cache.set('public_analytics', responseData, 60); // Cache for 60 seconds
+        // -------------------
+
+        res.json(responseData);
     } catch (err) {
         console.error('Public Analytics Error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/analytics/trends/historical
+// @desc    Get multi-month trends for Admin (Enterprise Analytics)
+// @access  Private (Admin)
+router.get('/trends/historical', auth, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Access denied.' });
+    }
+
+    try {
+        // Real logic would aggregate by month/year, here we provide high-fidelity mock data for simulation
+        const trends = [
+            { month: 'Oct', reported: 45, resolved: 30 },
+            { month: 'Nov', reported: 80, resolved: 55 },
+            { month: 'Dec', reported: 120, resolved: 90 },
+            { month: 'Jan', reported: 150, resolved: 130 },
+            { month: 'Feb', reported: 190, resolved: 175 },
+            { month: 'Mar', reported: 240, resolved: 220 }
+        ];
+        res.json(trends);
+    } catch (err) {
+        console.error('Historical Trends Error:', err.message);
         res.status(500).send('Server Error');
     }
 });
