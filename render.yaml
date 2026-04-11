@@ -1,0 +1,27 @@
+services:
+  # Backend Server (Socket.io + API)
+  - type: web
+    name: cleanpulse-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        fromConfigVar: MONGO_URI
+      - key: JWT_SECRET
+        fromConfigVar: JWT_SECRET
+      - key: GEMINI_API_KEY
+        fromConfigVar: GEMINI_API_KEY
+
+  # Frontend (Static Site)
+  - type: static
+    name: cleanpulse-web
+    env: static
+    buildCommand: cd client && npm install && npm run build
+    publishDir: client/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://cleanpulse-api.onrender.com

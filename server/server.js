@@ -51,13 +51,21 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/rewards', require('./routes/rewards'));
 app.use('/api/ai', require('./routes/ai'));
 
-app.get('/', (req, res) => {
-    res.send('CleanPulse API is running...');
-});
+// Serve static assets in production
+if (process.env.NODE_ENV === 'production') {
+    // Set static folder
+    app.use(express.static(path.join(__dirname, '../client/dist')));
+
+    app.get('*', (req, res) => {
+        res.sendFile(path.resolve(__dirname, '../client', 'dist', 'index.html'));
+    });
+} else {
+    app.get('/', (req, res) => {
+        res.send('CleanPulse API is running...');
+    });
+}
 
 const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'production') {
-    server.listen(PORT, () => console.log(`Server started on port ${PORT} (Real-time Active)`));
-}
+server.listen(PORT, () => console.log(`[Server] Ecosystem active on port ${PORT}`));
 
 module.exports = server;

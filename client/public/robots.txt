@@ -1,0 +1,11 @@
+# robots.txt for CleanPulse
+User-agent: *
+Allow: /
+Allow: /ecosystem
+Allow: /leaderboard
+Disallow: /admin
+Disallow: /collector
+Disallow: /citizen
+Disallow: /404
+
+Sitemap: https://cleanpulse.onrender.com/sitemap.xml
