@@ -19,6 +19,7 @@ import AdminUsers from './pages/admin/Users';
 import Home from './pages/Home';
 import Ecosystem from './pages/citizen/Ecosystem';
 import AIChatBot from './components/AIChatBot';
+import { Helmet } from 'react-helmet';
 import Footer from './components/Footer';
 
 
@@ -49,6 +50,13 @@ const SocketWrapper = ({ children }) => {
 function App() {
   return (
     <ThemeProvider>
+      <Helmet>
+        <title>CleanPulse | Planetary Healing & Smart Waste</title>
+        <meta name="description" content="CleanPulse is the definitive platform for planetary healing. Connect, report, and maintain a pristine environment." />
+        <meta name="keywords" content="smart waste, planetary healing, eco-credits, clean city, environmental tech" />
+        <meta property="og:title" content="CleanPulse | Planetary Healing" />
+        <meta property="og:site_name" content="CleanPulse" />
+      </Helmet>
       <AuthProvider>
         <SocketWrapper>
           <Router>

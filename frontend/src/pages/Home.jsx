@@ -2,6 +2,7 @@ import { cloneElement } from 'react';
 import { Link } from 'react-router-dom';
 import WasteAnalyzer from '../components/WasteAnalyzer';
 import { Shield, MapPin, Leaf, ArrowRight, Wind, Globe, Sparkles } from 'lucide-react';
+import { Helmet } from 'react-helmet';
 
 const Home = () => {
     const features = [
@@ -33,6 +34,10 @@ const Home = () => {
 
     return (
         <div className="min-h-screen pt-32 relative overflow-hidden">
+            <Helmet>
+                <title>CleanPulse | Welcome to the Sanctuary</title>
+                <meta name="description" content="Join CleanPulse, the leading platform for planetary healing. Get live waste monitoring, smart logistics, and earn rewards for a cleaner future." />
+            </Helmet>
             <div className="star-pattern" />
             
             <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
@@ -139,19 +144,7 @@ const Home = () => {
                 </div>
             </section>
             
-            <footer className="py-20 text-center border-t border-[var(--border-color)] mt-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-10 text-[var(--text-muted)]">
-                    <div className="flex items-center space-x-3">
-                        <Leaf className="text-[var(--accent-green)]" size={24} />
-                        <span className="font-black tracking-widest text-lg uppercase text-[var(--text-primary)]">CLEANPULSE</span>
-                    </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.5em]">&copy; 2026 CLEANPULSE TEAM. CLEANER FUTURE TOGETHER.</p>
-                    <div className="flex items-center space-x-6">
-                        <Globe size={20} className="hover:text-[var(--accent-green)] cursor-pointer" />
-                        <Shield size={20} className="hover:text-[var(--accent-green)] cursor-pointer" />
-                    </div>
-                </div>
-            </footer>
+
         </div>
     );
 };
