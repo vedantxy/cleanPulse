@@ -134,7 +134,7 @@ An interactive **Ecosystem** page that visualizes the technical architecture and
 
 ```
 cleanPulse/
-├── client/                  # React Frontend
+├── frontend/                  # React Frontend
 │   ├── src/
 │   │   ├── components/      # AIChatBot, WasteAnalyzer, Navbar...
 │   │   ├── context/         # Auth + Theme Context
@@ -145,7 +145,7 @@ cleanPulse/
 │   │   │   └── admin/       # Dashboard, Reports, Users...
 │   │   └── App.jsx          # Routing & Protected Layers
 │
-├── server/                  # Node.js Backend
+├── backend/                  # Node.js Backend
 │   ├── config/              # DB & Cloud config
 │   ├── models/              # User, Report, Badge, Zone...
 │   ├── routes/              # Auth, Reports, Analytics, AI...
@@ -165,7 +165,7 @@ cd cleanpulse
 
 ### 2. Setup Backend
 ```bash
-cd server
+cd backend
 npm install
 # Create .env with PORT, MONGO_URI, JWT_SECRET, and GEMINI_API_KEY
 npm run dev
@@ -173,7 +173,7 @@ npm run dev
 
 ### 3. Setup Frontend
 ```bash
-cd client
+cd frontend
 npm install
 npm run dev
 ```

@@ -20,8 +20,8 @@ services:
   - type: static
     name: cleanpulse-web
     env: static
-    buildCommand: cd client && npm install && npm run build
-    publishDir: client/dist
+    buildCommand: cd frontend && npm install && npm run build
+    publishDir: frontend/dist
     envVars:
       - key: VITE_API_URL
         value: https://cleanpulse-api.onrender.com

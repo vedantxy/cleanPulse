@@ -6,6 +6,7 @@ import api from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import { Leaf, CheckCircle, Clock, RefreshCcw, MapPin, AlertCircle, Loader2, Activity, ShieldCheck, Recycle, Sparkles, Award, Star, Plus, FileText, Trophy } from 'lucide-react';
 import { useSocket } from '../../context/SocketContext';
+import {Helmet} from "react-helmet";
 
 const CountUp = ({ end, duration = 2000 }) => {
     const [count, setCount] = useState(0);
@@ -158,6 +159,14 @@ const CitizenDashboard = () => {
     return (
         <div className="pt-28 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-slide-up">
             
+
+            {/* title changes */}
+            <Helmet>
+                <title>dashbord clean pulse</title>
+                <meta name="description"  content="explore this smart waste mangement system"/>
+            </Helmet>
+
+
             {/* 1. Hero Header */}
             <div className="glass-card p-10 mb-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--accent-green)]/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />

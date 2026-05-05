@@ -15,7 +15,7 @@ Follow these steps to deploy your application to the cloud.
 3. Create a new **Web Service**.
 4. Connect your GitHub repository.
 5. Set the following:
-   - **Root Directory**: `server`
+   - **Root Directory**: `backend`
    - **Build Command**: `npm install`
    - **Start Command**: `npm start`
 6. Add **Environment Variables**:
@@ -24,17 +24,6 @@ Follow these steps to deploy your application to the cloud.
    - `PORT`: `10000` (Render's default)
 7. Once deployed, copy your **Render Service URL** (e.g., `https://cleanpulse-backend.onrender.com`).
 
-## 3. Deploy Frontend (Vercel)
-1. Sign up for [Vercel](https://vercel.com/).
-2. Create a new project and import your GitHub repository.
-3. Configure the project:
-   - **Root Directory**: `client`
-   - **Framework Preset**: `Vite`
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
-4. Add **Environment Variables**:
-   - `VITE_API_URL`: (Your Render Service URL)
-5. **Vite Proxy Note**: In production, Vite proxy does not work. You should update your `axios` base URL or use absolute URLs.
 
 ### Important Note on Vite Proxy
-Your current frontend uses a central API configuration in `client/src/api/api.js`. For production, the application will automatically use the `VITE_API_URL` environment variable.
+Your current frontend uses a central API configuration in `frontend/src/api/api.js`. For production, the application will automatically use the `VITE_API_URL` environment variable.
